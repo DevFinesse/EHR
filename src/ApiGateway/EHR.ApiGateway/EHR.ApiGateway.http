@@ -1,0 +1,6 @@
+@EHR.ApiGateway_HostAddress = http://localhost:5278
+
+GET {{EHR.ApiGateway_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

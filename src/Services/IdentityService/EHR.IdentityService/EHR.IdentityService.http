@@ -1,0 +1,6 @@
+@EHR.IdentityService_HostAddress = http://localhost:5017
+
+GET {{EHR.IdentityService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

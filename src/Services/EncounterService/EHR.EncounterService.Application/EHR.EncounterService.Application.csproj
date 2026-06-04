@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\EHR.EncounterService.Domain\EHR.EncounterService.Domain.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\EHR.Cqrs\EHR.Cqrs.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\EHR.Messaging\EHR.Messaging.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\EHR.SharedKernel\EHR.SharedKernel.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

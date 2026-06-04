@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\EHR.Messaging\EHR.Messaging.csproj" />
+    <ProjectReference Include="..\EHR.IdentityService.Application\EHR.IdentityService.Application.csproj" />
+    <ProjectReference Include="..\EHR.IdentityService.Domain\EHR.IdentityService.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.18.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,48 @@
+using EHR.AppointmentService.Application.Appointments;
+using EHR.AppointmentService.Application.Patients;
+using EHR.AppointmentService.Domain.Appointments;
+using EHR.AppointmentService.Infrastructure.Appointments;
+using EHR.AppointmentService.Infrastructure.Patients;
+using EHR.Cqrs;
+using EHR.Messaging;
+using EHR.ServiceDefaults;
+using EHR.SharedKernel;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.AddEhrServiceDefaults("EHR.AppointmentService");
+builder.Services.AddControllers();
+builder.Services.AddOpenApi();
+builder.Services.AddEhrMessaging(builder.Configuration);
+builder.Services.AddScoped<ICqrsDispatcher, CqrsDispatcher>();
+var appointmentDb = builder.Configuration.GetConnectionString("AppointmentDb");
+if (string.IsNullOrWhiteSpace(appointmentDb))
+{
+    builder.Services.AddSingleton<IAppointmentRepository>(provider => new InMemoryAppointmentRepository(provider.GetRequiredService<IEventBus>()));
+    builder.Services.AddSingleton<IKnownPatientRepository, InMemoryKnownPatientRepository>();
+}
+else
+{
+    await ServiceDefaults.RunWithStartupRetryAsync(() => AppointmentDatabaseMigrator.MigrateAsync(appointmentDb), "Appointment database migration");
+    builder.Services.AddSingleton<IAppointmentRepository>(_ => new PostgresAppointmentRepository(appointmentDb));
+    builder.Services.AddSingleton<IKnownPatientRepository>(_ => new PostgresKnownPatientRepository(appointmentDb));
+    builder.Services.AddHostedService(provider => new AppointmentOutboxPublisherWorker(
+        appointmentDb,
+        provider.GetRequiredService<IEventBus>(),
+        provider.GetRequiredService<ILogger<AppointmentOutboxPublisherWorker>>()));
+}
+builder.Services.AddScoped<ICommandHandler<BookAppointmentCommand, Result<Appointment>>, BookAppointmentHandler>();
+builder.Services.AddScoped<ICommandHandler<CheckInPatientCommand, Result<Appointment>>, CheckInPatientHandler>();
+builder.Services.AddScoped<IQueryHandler<GetAppointmentByIdQuery, Appointment?>, GetAppointmentByIdHandler>();
+builder.Services.AddSingleton<IIntegrationEventHandler, PatientRegisteredIntegrationEventHandler>();
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+}
+
+app.UseEhrServiceDefaults();
+app.MapControllers();
+app.Run();

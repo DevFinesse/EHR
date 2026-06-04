@@ -1,0 +1,56 @@
+# Build outputs
+bin/
+obj/
+artifacts/
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# .NET generated files
+project.lock.json
+project.assets.json
+*.nuget.props
+*.nuget.targets
+
+# User-specific IDE files
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider/ReSharper
+_ReSharper*/
+*.DotSettings.user
+
+# Logs and local runtime files
+*.log
+*.pid
+*.out.log
+*.err.log
+logs/
+
+# Local configuration and secrets
+appsettings.Development.local.json
+appsettings.Local.json
+*.secrets.json
+.env
+.env.*
+!.env.example
+
+# Docker and compose local overrides
+docker-compose.override.yml
+compose.override.yml
+
+# EF / database scratch files
+*.db
+*.db-shm
+*.db-wal
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store

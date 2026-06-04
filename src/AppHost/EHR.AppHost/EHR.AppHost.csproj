@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Sdk Name="Aspire.AppHost.Sdk" Version="13.4.0" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>eefc3969-3611-4d0f-ae9e-5b971d828075</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="13.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\ApiGateway\EHR.ApiGateway\EHR.ApiGateway.csproj" IsAspireProjectResource="true" />
+    <ProjectReference Include="..\..\Services\TenantService\EHR.TenantService\EHR.TenantService.csproj" IsAspireProjectResource="true" />
+    <ProjectReference Include="..\..\Services\IdentityService\EHR.IdentityService\EHR.IdentityService.csproj" IsAspireProjectResource="true" />
+    <ProjectReference Include="..\..\Services\PatientService\EHR.PatientService\EHR.PatientService.csproj" IsAspireProjectResource="true" />
+    <ProjectReference Include="..\..\Services\AppointmentService\EHR.AppointmentService\EHR.AppointmentService.csproj" IsAspireProjectResource="true" />
+    <ProjectReference Include="..\..\Services\EncounterService\EHR.EncounterService\EHR.EncounterService.csproj" IsAspireProjectResource="true" />
+    <ProjectReference Include="..\..\Services\AuditService\EHR.AuditService\EHR.AuditService.csproj" IsAspireProjectResource="true" />
+  </ItemGroup>
+
+</Project>

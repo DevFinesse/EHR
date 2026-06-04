@@ -1,0 +1,58 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/EHR.Api/EHR.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/ApiGateway/">
+    <Project Path="src/ApiGateway/EHR.ApiGateway/EHR.ApiGateway.csproj" />
+  </Folder>
+  <Folder Name="/src/AppHost/">
+    <Project Path="src/AppHost/EHR.AppHost/EHR.AppHost.csproj" />
+  </Folder>
+  <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/EHR.Cqrs/EHR.Cqrs.csproj" />
+    <Project Path="src/BuildingBlocks/EHR.Messaging/EHR.Messaging.csproj" />
+    <Project Path="src/BuildingBlocks/EHR.ServiceDefaults/EHR.ServiceDefaults.csproj" />
+    <Project Path="src/BuildingBlocks/EHR.SharedKernel/EHR.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/" />
+  <Folder Name="/src/Services/AppointmentService/">
+    <Project Path="src/Services/AppointmentService/EHR.AppointmentService.Application/EHR.AppointmentService.Application.csproj" />
+    <Project Path="src/Services/AppointmentService/EHR.AppointmentService.Domain/EHR.AppointmentService.Domain.csproj" />
+    <Project Path="src/Services/AppointmentService/EHR.AppointmentService.Infrastructure/EHR.AppointmentService.Infrastructure.csproj" />
+    <Project Path="src/Services/AppointmentService/EHR.AppointmentService/EHR.AppointmentService.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/AuditService/">
+    <Project Path="src/Services/AuditService/EHR.AuditService.Application/EHR.AuditService.Application.csproj" />
+    <Project Path="src/Services/AuditService/EHR.AuditService.Domain/EHR.AuditService.Domain.csproj" />
+    <Project Path="src/Services/AuditService/EHR.AuditService.Infrastructure/EHR.AuditService.Infrastructure.csproj" />
+    <Project Path="src/Services/AuditService/EHR.AuditService/EHR.AuditService.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/EncounterService/">
+    <Project Path="src/Services/EncounterService/EHR.EncounterService.Application/EHR.EncounterService.Application.csproj" />
+    <Project Path="src/Services/EncounterService/EHR.EncounterService.Domain/EHR.EncounterService.Domain.csproj" />
+    <Project Path="src/Services/EncounterService/EHR.EncounterService.Infrastructure/EHR.EncounterService.Infrastructure.csproj" />
+    <Project Path="src/Services/EncounterService/EHR.EncounterService/EHR.EncounterService.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/IdentityService/">
+    <Project Path="src/Services/IdentityService/EHR.IdentityService.Application/EHR.IdentityService.Application.csproj" />
+    <Project Path="src/Services/IdentityService/EHR.IdentityService.Domain/EHR.IdentityService.Domain.csproj" />
+    <Project Path="src/Services/IdentityService/EHR.IdentityService.Infrastructure/EHR.IdentityService.Infrastructure.csproj" />
+    <Project Path="src/Services/IdentityService/EHR.IdentityService/EHR.IdentityService.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/PatientService/">
+    <Project Path="src/Services/PatientService/EHR.PatientService.Application/EHR.PatientService.Application.csproj" />
+    <Project Path="src/Services/PatientService/EHR.PatientService.Domain/EHR.PatientService.Domain.csproj" />
+    <Project Path="src/Services/PatientService/EHR.PatientService.Infrastructure/EHR.PatientService.Infrastructure.csproj" />
+    <Project Path="src/Services/PatientService/EHR.PatientService/EHR.PatientService.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/TenantService/">
+    <Project Path="src/Services/TenantService/EHR.TenantService.Application/EHR.TenantService.Application.csproj" />
+    <Project Path="src/Services/TenantService/EHR.TenantService.Domain/EHR.TenantService.Domain.csproj" />
+    <Project Path="src/Services/TenantService/EHR.TenantService.Infrastructure/EHR.TenantService.Infrastructure.csproj" />
+    <Project Path="src/Services/TenantService/EHR.TenantService/EHR.TenantService.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/EHR.Api.Tests/EHR.Api.Tests.csproj" />
+    <Project Path="tests/EHR.Infrastructure.Tests/EHR.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>
