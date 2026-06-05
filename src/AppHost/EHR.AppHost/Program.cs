@@ -3,6 +3,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 const string jwtSigningKey = "development-signing-key-change-before-production-32chars";
 const string postgresUser = "ehr";
 const string postgresPassword = "ehr_dev_password";
+var repositoryRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", ".."));
+var pgAdminServersPath = Path.Combine(repositoryRoot, "docker", "pgadmin", "servers.json");
 
 var kafka = builder.AddContainer("kafka", "confluentinc/cp-kafka", "7.6.1")
     .WithEndpoint(port: 9092, targetPort: 29092, name: "external")
@@ -45,7 +47,9 @@ var mailpit = builder.AddContainer("mailpit", "axllent/mailpit", "v1.21")
 var pgAdmin = builder.AddContainer("pgadmin", "dpage/pgadmin4", "9.12.0")
     .WithHttpEndpoint(port: 8082, targetPort: 80, name: "http")
     .WithEnvironment("PGADMIN_DEFAULT_EMAIL", "admin@example.com")
-    .WithEnvironment("PGADMIN_DEFAULT_PASSWORD", "admin");
+    .WithEnvironment("PGADMIN_DEFAULT_PASSWORD", "admin")
+    .WithEnvironment("PGADMIN_CONFIG_UPGRADE_CHECK_ENABLED", "False")
+    .WithBindMount(pgAdminServersPath, "/pgadmin4/servers.json", isReadOnly: true);
 
 var tenantDb = AddPostgres("tenant-db", "ehr_tenant", 5433);
 var identityDb = AddPostgres("identity-db", "ehr_identity", 5434);
