@@ -13,6 +13,7 @@ public static class RolePermissionMap
                 PlatformPermissions.StaffManage,
                 PlatformPermissions.StaffInvite,
                 PlatformPermissions.StaffMetadataRead,
+                PlatformPermissions.StaffMetadataManage,
                 PlatformPermissions.PatientsRead,
                 PlatformPermissions.PatientsCreate,
                 PlatformPermissions.AppointmentsRead,

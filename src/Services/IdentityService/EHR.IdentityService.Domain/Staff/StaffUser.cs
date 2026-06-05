@@ -1,5 +1,4 @@
 using EHR.SharedKernel;
-using EHR.SharedKernel.Authorization;
 
 namespace EHR.IdentityService.Domain.Staff;
 
@@ -53,17 +52,17 @@ public sealed class StaffUser
 
     public static StaffUser Create(string tenantId, string fullName, string email, string role, string department)
     {
-        if (!PlatformRoles.TryNormalize(role, out var normalizedRole))
+        if (string.IsNullOrWhiteSpace(role))
         {
-            throw new ArgumentException($"Unsupported staff role '{role}'.", nameof(role));
+            throw new ArgumentException("Staff role is required.", nameof(role));
         }
 
-        if (!StaffDepartments.TryNormalize(department, out var normalizedDepartment))
+        if (string.IsNullOrWhiteSpace(department))
         {
-            throw new ArgumentException($"Unsupported staff department '{department}'.", nameof(department));
+            throw new ArgumentException("Staff department is required.", nameof(department));
         }
 
-        return new(Guid.NewGuid(), tenantId.Trim(), fullName.Trim(), email.Trim().ToLowerInvariant(), normalizedRole, normalizedDepartment, null, false, null, null, 0, null);
+        return new(Guid.NewGuid(), tenantId.Trim(), fullName.Trim(), email.Trim().ToLowerInvariant(), role.Trim(), department.Trim(), null, false, null, null, 0, null);
     }
 
     public static StaffUser Restore(Guid id, string tenantId, string fullName, string email, string role, string department, string? passwordHash, bool mfaEnabled, string? mfaSecret, string? recoveryCodesHash, int failedLoginAttempts, DateTimeOffset? lockedUntil) =>

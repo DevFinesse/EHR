@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 namespace EHR.Messaging;
 
@@ -54,24 +55,35 @@ public abstract class OutboxPublisherWorkerBase<TDbContext, TOutboxMessage> : Ba
 
         foreach (var message in messages)
         {
+            using var activity = MessagingTelemetry.ActivitySource.StartActivity("outbox publish", ActivityKind.Internal);
+            activity?.SetTag("ehr.event_id", message.EventId);
+            activity?.SetTag("ehr.tenant_id", message.TenantId);
+            activity?.SetTag("ehr.event_type", message.Type);
+
             var envelope = message.ToEnvelope();
             if (envelope is null)
             {
                 message.Attempts++;
                 message.LastError = "Outbox payload could not be deserialized.";
+                activity?.SetStatus(ActivityStatusCode.Error, message.LastError);
+                MessagingTelemetry.OutboxPublishFailures.Add(1, MessagingTelemetry.Tags(MessagingTelemetry.Tag("event.type", message.Type), MessagingTelemetry.Tag("reason", "deserialize")));
                 continue;
             }
 
+            MessagingTelemetry.OutboxPublishAttempts.Add(1, MessagingTelemetry.Tags(MessagingTelemetry.Tag("event.type", envelope.Type)));
             var published = await _eventBus.TryPublishEnvelopeAsync(envelope, cancellationToken);
             message.Attempts++;
             if (published)
             {
                 message.ProcessedAt = DateTimeOffset.UtcNow;
                 message.LastError = null;
+                MessagingTelemetry.OutboxPublishSuccesses.Add(1, MessagingTelemetry.Tags(MessagingTelemetry.Tag("event.type", envelope.Type)));
             }
             else
             {
                 message.LastError = "Event bus publish failed.";
+                activity?.SetStatus(ActivityStatusCode.Error, message.LastError);
+                MessagingTelemetry.OutboxPublishFailures.Add(1, MessagingTelemetry.Tags(MessagingTelemetry.Tag("event.type", envelope.Type), MessagingTelemetry.Tag("reason", "publish")));
             }
         }
 

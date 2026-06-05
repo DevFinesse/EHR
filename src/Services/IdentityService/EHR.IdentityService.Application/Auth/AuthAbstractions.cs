@@ -4,7 +4,7 @@ namespace EHR.IdentityService.Application.Auth;
 
 public interface ITokenIssuer
 {
-    TokenResponse Issue(StaffUser staffUser);
+    Task<TokenResponse> IssueAsync(StaffUser staffUser, CancellationToken cancellationToken);
 }
 
 public interface IRefreshTokenRepository

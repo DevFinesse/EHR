@@ -24,10 +24,22 @@ public static class MessagingRegistration
                 ReadInt(configuration, "Kafka:MessageSendMaxRetries", 1),
                 ReadInt(configuration, "Kafka:RetryBackoffMilliseconds", 100)),
             provider.GetRequiredService<ILogger<KafkaEventBus>>()));
+        services.AddHostedService(provider => new KafkaTopicInitializer(
+            bootstrapServers,
+            ReadTopics(configuration),
+            provider.GetRequiredService<ILogger<KafkaTopicInitializer>>()));
         services.AddHostedService<KafkaConsumerWorker>();
         return services;
     }
 
     private static int ReadInt(IConfiguration configuration, string key, int fallback) =>
         int.TryParse(configuration[key], out var value) ? value : fallback;
+
+    private static IEnumerable<string> ReadTopics(IConfiguration configuration) =>
+        configuration
+            .GetSection("Kafka:ConsumerTopics")
+            .GetChildren()
+            .Select(topic => topic.Value)
+            .Where(topic => !string.IsNullOrWhiteSpace(topic))
+            .Cast<string>();
 }

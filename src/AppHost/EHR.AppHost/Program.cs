@@ -7,10 +7,11 @@ const string postgresPassword = "ehr_dev_password";
 var kafka = builder.AddContainer("kafka", "confluentinc/cp-kafka", "7.6.1")
     .WithEndpoint(port: 9092, targetPort: 29092, name: "external")
     .WithEndpoint(targetPort: 9092, name: "internal")
+    .WithEndpoint(targetPort: 9997, name: "jmx")
     .WithEnvironment("CLUSTER_ID", "MkU3OEVBNTcwNTJENDM2Qk")
     .WithEnvironment("KAFKA_NODE_ID", "1")
     .WithEnvironment("KAFKA_PROCESS_ROLES", "broker,controller")
-    .WithEnvironment("KAFKA_CONTROLLER_QUORUM_VOTERS", "1@kafka:9093")
+    .WithEnvironment("KAFKA_CONTROLLER_QUORUM_VOTERS", "1@localhost:9093")
     .WithEnvironment("KAFKA_LISTENERS", "INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093")
     .WithEnvironment("KAFKA_ADVERTISED_LISTENERS", "INTERNAL://kafka:9092,EXTERNAL://localhost:9092")
     .WithEnvironment("KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT")
@@ -20,7 +21,17 @@ var kafka = builder.AddContainer("kafka", "confluentinc/cp-kafka", "7.6.1")
     .WithEnvironment("KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR", "1")
     .WithEnvironment("KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "1")
     .WithEnvironment("KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "1")
-    .WithEnvironment("KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS", "0");
+    .WithEnvironment("KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS", "0")
+    .WithEnvironment("KAFKA_JMX_PORT", "9997")
+    .WithEnvironment("KAFKA_JMX_HOSTNAME", "kafka");
+
+var kafkaUi = builder.AddContainer("kafka-ui", "kafbat/kafka-ui", "v1.4.2")
+    .WithHttpEndpoint(port: 8081, targetPort: 8080, name: "http")
+    .WithEnvironment("KAFKA_CLUSTERS_0_NAME", "ehr-local")
+    .WithEnvironment("KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS", "kafka:9092")
+    .WithEnvironment("KAFKA_CLUSTERS_0_METRICS_PORT", "9997")
+    .WithEnvironment("DYNAMIC_CONFIG_ENABLED", "true")
+    .WaitFor(kafka);
 
 var jaeger = builder.AddContainer("jaeger", "jaegertracing/all-in-one", "1.57")
     .WithEndpoint(port: 16686, targetPort: 16686, name: "ui")
@@ -30,6 +41,11 @@ var jaeger = builder.AddContainer("jaeger", "jaegertracing/all-in-one", "1.57")
 var mailpit = builder.AddContainer("mailpit", "axllent/mailpit", "v1.21")
     .WithEndpoint(port: 1025, targetPort: 1025, name: "smtp")
     .WithEndpoint(port: 8025, targetPort: 8025, name: "ui");
+
+var pgAdmin = builder.AddContainer("pgadmin", "dpage/pgadmin4", "9.12.0")
+    .WithHttpEndpoint(port: 8082, targetPort: 80, name: "http")
+    .WithEnvironment("PGADMIN_DEFAULT_EMAIL", "admin@example.com")
+    .WithEnvironment("PGADMIN_DEFAULT_PASSWORD", "admin");
 
 var tenantDb = AddPostgres("tenant-db", "ehr_tenant", 5433);
 var identityDb = AddPostgres("identity-db", "ehr_identity", 5434);
@@ -128,6 +144,8 @@ builder.AddProject<Projects.EHR_ApiGateway>("api-gateway")
     .WaitFor(appointmentService)
     .WaitFor(encounterService)
     .WaitFor(auditService)
+    .WaitFor(kafkaUi)
+    .WaitFor(pgAdmin)
     .WithEnvironment("Jwt__SigningKey", jwtSigningKey)
     .WithEnvironment("OpenTelemetry__OtlpEndpoint", "http://localhost:4317")
     .WithEnvironment("ReverseProxy__Clusters__tenant__Destinations__default__Address", "http://localhost:5191/")

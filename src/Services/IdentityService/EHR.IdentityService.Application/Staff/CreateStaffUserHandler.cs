@@ -11,12 +11,14 @@ public sealed class CreateStaffUserHandler : ICommandHandler<CreateStaffUserComm
     private readonly IStaffUserRepository _repository;
     private readonly ITenantRegistrationReadModelRepository _tenants;
     private readonly ITenantAuthorizationService _tenantAuthorization;
+    private readonly IStaffMetadataRepository _staffMetadata;
 
-    public CreateStaffUserHandler(IStaffUserRepository repository, ITenantRegistrationReadModelRepository tenants, ITenantAuthorizationService tenantAuthorization)
+    public CreateStaffUserHandler(IStaffUserRepository repository, ITenantRegistrationReadModelRepository tenants, ITenantAuthorizationService tenantAuthorization, IStaffMetadataRepository staffMetadata)
     {
         _repository = repository;
         _tenants = tenants;
         _tenantAuthorization = tenantAuthorization;
+        _staffMetadata = staffMetadata;
     }
 
     public async Task<StaffUser> HandleAsync(CreateStaffUserCommand command, CancellationToken cancellationToken)
@@ -30,7 +32,19 @@ public sealed class CreateStaffUserHandler : ICommandHandler<CreateStaffUserComm
             throw new TenantNotFoundException(command.TenantId);
         }
 
-        var staffUser = StaffUser.Create(tenantId, command.FullName, command.Email, command.Role, command.Department);
+        var role = await _staffMetadata.NormalizeRoleAsync(tenantId, command.Role, cancellationToken);
+        if (role is null)
+        {
+            throw new ArgumentException($"Unsupported staff role '{command.Role}'.", nameof(command.Role));
+        }
+
+        var department = await _staffMetadata.NormalizeDepartmentAsync(tenantId, command.Department, cancellationToken);
+        if (department is null)
+        {
+            throw new ArgumentException($"Unsupported staff department '{command.Department}'.", nameof(command.Department));
+        }
+
+        var staffUser = StaffUser.Create(tenantId, command.FullName, command.Email, role, department);
         var integrationEvent = new StaffUserCreatedEvent(Guid.NewGuid(), staffUser.TenantId, staffUser.Id, staffUser.Role, Guid.NewGuid().ToString("N"));
         await _repository.AddAsync(staffUser, integrationEvent, cancellationToken);
         return staffUser;

@@ -3,8 +3,8 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using EHR.IdentityService.Application.Auth;
+using EHR.IdentityService.Application.Staff;
 using EHR.IdentityService.Domain.Staff;
-using EHR.SharedKernel.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 
@@ -13,13 +13,15 @@ namespace EHR.IdentityService.Infrastructure.Auth;
 public sealed class JwtTokenIssuer : ITokenIssuer
 {
     private readonly IConfiguration _configuration;
+    private readonly IStaffMetadataRepository _staffMetadata;
 
-    public JwtTokenIssuer(IConfiguration configuration)
+    public JwtTokenIssuer(IConfiguration configuration, IStaffMetadataRepository staffMetadata)
     {
         _configuration = configuration;
+        _staffMetadata = staffMetadata;
     }
 
-    public TokenResponse Issue(StaffUser staffUser)
+    public async Task<TokenResponse> IssueAsync(StaffUser staffUser, CancellationToken cancellationToken)
     {
         var expiresAt = DateTimeOffset.UtcNow.AddMinutes(30);
         var signingKey = _configuration["Jwt:SigningKey"] ?? throw new InvalidOperationException("Jwt:SigningKey is not configured.");
@@ -34,7 +36,7 @@ public sealed class JwtTokenIssuer : ITokenIssuer
             new Claim(ClaimTypes.Role, staffUser.Role)
         };
 
-        foreach (var permission in RolePermissionMap.GetPermissions(staffUser.Role))
+        foreach (var permission in await _staffMetadata.GetPermissionsForRoleAsync(staffUser.TenantId, staffUser.Role, cancellationToken))
         {
             claims.Add(new Claim("permission", permission));
         }

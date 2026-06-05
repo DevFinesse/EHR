@@ -14,6 +14,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseEhrServiceDefaults();
-app.MapGet("/", () => Results.Ok(new { service = "EHR.ApiGateway", routes = "tenant, identity, patient, appointment, encounter, audit" }));
+app.MapGet("/", () => Results.Ok(new { service = "EHR.ApiGateway", routes = "tenant, identity, patient, appointment, encounter, audit, kafka-ui, pgadmin" }));
 app.MapReverseProxy();
 app.Run();

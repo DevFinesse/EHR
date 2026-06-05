@@ -22,6 +22,7 @@ if (string.IsNullOrWhiteSpace(identityDb))
 {
     builder.Services.AddSingleton<IStaffUserRepository>(provider => new InMemoryStaffUserRepository(provider.GetRequiredService<IEventBus>()));
     builder.Services.AddSingleton<ITenantRegistrationReadModelRepository, InMemoryTenantRegistrationReadModelRepository>();
+    builder.Services.AddSingleton<IStaffMetadataRepository, InMemoryStaffMetadataRepository>();
     builder.Services.AddSingleton<IRefreshTokenRepository, InMemoryRefreshTokenRepository>();
     builder.Services.AddSingleton<IStaffInvitationRepository, InMemoryStaffInvitationRepository>();
     builder.Services.AddSingleton<IPasswordResetTokenRepository, InMemoryPasswordResetTokenRepository>();
@@ -29,9 +30,11 @@ if (string.IsNullOrWhiteSpace(identityDb))
 else
 {
     await ServiceDefaults.RunWithStartupRetryAsync(() => IdentityDatabaseMigrator.MigrateAsync(identityDb), "Identity database migration");
+    await ServiceDefaults.RunWithStartupRetryAsync(() => IdentityStaffMetadataSeeder.SeedAsync(identityDb), "Identity staff metadata seed");
     await ServiceDefaults.RunWithStartupRetryAsync(() => IdentityDevelopmentSeeder.SeedAsync(identityDb, new Pbkdf2PasswordHasher(), builder.Configuration, builder.Environment), "Identity development admin seed");
     builder.Services.AddSingleton<IStaffUserRepository>(_ => new PostgresStaffUserRepository(identityDb));
     builder.Services.AddSingleton<ITenantRegistrationReadModelRepository>(_ => new PostgresTenantRegistrationReadModelRepository(identityDb));
+    builder.Services.AddSingleton<IStaffMetadataRepository>(_ => new PostgresStaffMetadataRepository(identityDb));
     builder.Services.AddSingleton<IRefreshTokenRepository>(_ => new PostgresRefreshTokenRepository(identityDb));
     builder.Services.AddSingleton<IStaffInvitationRepository>(_ => new PostgresStaffInvitationRepository(identityDb));
     builder.Services.AddSingleton<IPasswordResetTokenRepository>(_ => new PostgresPasswordResetTokenRepository(identityDb));

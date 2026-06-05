@@ -7,6 +7,7 @@ public static class PlatformPermissions
     public const string StaffManage = "staff.manage";
     public const string StaffInvite = "staff.invite";
     public const string StaffMetadataRead = "staff.metadata.read";
+    public const string StaffMetadataManage = "staff.metadata.manage";
     public const string PatientsRead = "patients.read";
     public const string PatientsCreate = "patients.create";
     public const string AppointmentsRead = "appointments.read";
@@ -24,6 +25,7 @@ public static class PlatformPermissions
         StaffManage,
         StaffInvite,
         StaffMetadataRead,
+        StaffMetadataManage,
         PatientsRead,
         PatientsCreate,
         AppointmentsRead,

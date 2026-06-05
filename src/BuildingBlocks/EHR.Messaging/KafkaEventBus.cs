@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Confluent.Kafka;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 namespace EHR.Messaging;
 
@@ -44,6 +45,16 @@ public sealed class KafkaEventBus : IEventBus, IDisposable
 
     public async Task<bool> TryPublishEnvelopeAsync(EventEnvelope envelope, CancellationToken cancellationToken)
     {
+        using var activity = MessagingTelemetry.ActivitySource.StartActivity("kafka publish", ActivityKind.Producer);
+        activity?.SetTag("messaging.system", "kafka");
+        activity?.SetTag("messaging.destination.name", envelope.Type);
+        activity?.SetTag("messaging.kafka.message.key", envelope.TenantId);
+        activity?.SetTag("ehr.event_id", envelope.EventId);
+        activity?.SetTag("ehr.tenant_id", envelope.TenantId);
+        activity?.SetTag("ehr.correlation_id", envelope.CorrelationId);
+
+        var started = Stopwatch.GetTimestamp();
+        MessagingTelemetry.KafkaPublishAttempts.Add(1, MessagingTelemetry.Tags(MessagingTelemetry.Tag("event.type", envelope.Type)));
         using var timeout = new CancellationTokenSource(TimeSpan.FromMilliseconds(_options.PublishTimeoutMilliseconds));
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
 
@@ -58,10 +69,14 @@ public sealed class KafkaEventBus : IEventBus, IDisposable
                 },
                 linked.Token);
 
+            MessagingTelemetry.KafkaPublishDuration.Record(ElapsedMilliseconds(started), MessagingTelemetry.Tags(MessagingTelemetry.Tag("event.type", envelope.Type)));
             return true;
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
+            activity?.SetStatus(ActivityStatusCode.Error, "Kafka publish timed out.");
+            MessagingTelemetry.KafkaPublishFailures.Add(1, MessagingTelemetry.Tags(MessagingTelemetry.Tag("event.type", envelope.Type), MessagingTelemetry.Tag("reason", "timeout")));
+            MessagingTelemetry.KafkaPublishDuration.Record(ElapsedMilliseconds(started), MessagingTelemetry.Tags(MessagingTelemetry.Tag("event.type", envelope.Type)));
             _logger.LogWarning(
                 "Kafka publish timed out after {TimeoutMilliseconds} ms for event {EventType} {EventId}.",
                 _options.PublishTimeoutMilliseconds,
@@ -72,6 +87,9 @@ public sealed class KafkaEventBus : IEventBus, IDisposable
         }
         catch (ProduceException<string, string> exception)
         {
+            activity?.SetStatus(ActivityStatusCode.Error, exception.Error.Reason);
+            MessagingTelemetry.KafkaPublishFailures.Add(1, MessagingTelemetry.Tags(MessagingTelemetry.Tag("event.type", envelope.Type), MessagingTelemetry.Tag("reason", exception.Error.Code.ToString())));
+            MessagingTelemetry.KafkaPublishDuration.Record(ElapsedMilliseconds(started), MessagingTelemetry.Tags(MessagingTelemetry.Tag("event.type", envelope.Type)));
             _logger.LogWarning(
                 exception,
                 "Kafka publish failed for event {EventType} {EventId}: {Reason}.",
@@ -83,6 +101,9 @@ public sealed class KafkaEventBus : IEventBus, IDisposable
         }
         catch (KafkaException exception)
         {
+            activity?.SetStatus(ActivityStatusCode.Error, exception.Error.Reason);
+            MessagingTelemetry.KafkaPublishFailures.Add(1, MessagingTelemetry.Tags(MessagingTelemetry.Tag("event.type", envelope.Type), MessagingTelemetry.Tag("reason", exception.Error.Code.ToString())));
+            MessagingTelemetry.KafkaPublishDuration.Record(ElapsedMilliseconds(started), MessagingTelemetry.Tags(MessagingTelemetry.Tag("event.type", envelope.Type)));
             _logger.LogWarning(
                 exception,
                 "Kafka publish failed for event {EventType} {EventId}: {Reason}.",
@@ -93,6 +114,9 @@ public sealed class KafkaEventBus : IEventBus, IDisposable
             return false;
         }
     }
+
+    private static double ElapsedMilliseconds(long started) =>
+        (Stopwatch.GetTimestamp() - started) * 1000d / Stopwatch.Frequency;
 
     public void Dispose()
     {

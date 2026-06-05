@@ -14,6 +14,10 @@ public sealed class IdentityDbContext : DbContext
     public DbSet<StaffInvitationRow> StaffInvitations => Set<StaffInvitationRow>();
     public DbSet<PasswordResetTokenRow> PasswordResetTokens => Set<PasswordResetTokenRow>();
     public DbSet<TenantRegistrationRow> TenantRegistrations => Set<TenantRegistrationRow>();
+    public DbSet<StaffRoleRow> Roles => Set<StaffRoleRow>();
+    public DbSet<StaffDepartmentRow> Departments => Set<StaffDepartmentRow>();
+    public DbSet<StaffPermissionRow> Permissions => Set<StaffPermissionRow>();
+    public DbSet<StaffRolePermissionRow> RolePermissions => Set<StaffRolePermissionRow>();
     public DbSet<IdentityOutboxMessageRow> OutboxMessages => Set<IdentityOutboxMessageRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -79,6 +83,56 @@ public sealed class IdentityDbContext : DbContext
             entity.Property(row => row.CorrelationId).HasColumnName("correlation_id");
         });
 
+        modelBuilder.Entity<StaffRoleRow>(entity =>
+        {
+            entity.ToTable("staff_roles");
+            entity.HasKey(row => new { row.Scope, row.Name });
+            entity.Property(row => row.Scope).HasColumnName("scope");
+            entity.Property(row => row.Name).HasColumnName("name");
+            entity.Property(row => row.Description).HasColumnName("description");
+            entity.Property(row => row.IsSystem).HasColumnName("is_system");
+            entity.Property(row => row.CreatedAt).HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<StaffDepartmentRow>(entity =>
+        {
+            entity.ToTable("staff_departments");
+            entity.HasKey(row => new { row.Scope, row.Name });
+            entity.Property(row => row.Scope).HasColumnName("scope");
+            entity.Property(row => row.Name).HasColumnName("name");
+            entity.Property(row => row.Description).HasColumnName("description");
+            entity.Property(row => row.IsSystem).HasColumnName("is_system");
+            entity.Property(row => row.CreatedAt).HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<StaffPermissionRow>(entity =>
+        {
+            entity.ToTable("staff_permissions");
+            entity.HasKey(row => row.Name);
+            entity.Property(row => row.Name).HasColumnName("name");
+            entity.Property(row => row.Description).HasColumnName("description");
+            entity.Property(row => row.IsSystem).HasColumnName("is_system");
+            entity.Property(row => row.CreatedAt).HasColumnName("created_at");
+        });
+
+        modelBuilder.Entity<StaffRolePermissionRow>(entity =>
+        {
+            entity.ToTable("staff_role_permissions");
+            entity.HasKey(row => new { row.Scope, row.RoleName, row.PermissionName });
+            entity.Property(row => row.Scope).HasColumnName("scope");
+            entity.Property(row => row.RoleName).HasColumnName("role_name");
+            entity.Property(row => row.PermissionName).HasColumnName("permission_name");
+            entity.Property(row => row.CreatedAt).HasColumnName("created_at");
+            entity.HasOne<StaffRoleRow>()
+                .WithMany()
+                .HasForeignKey(row => new { row.Scope, row.RoleName })
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<StaffPermissionRow>()
+                .WithMany()
+                .HasForeignKey(row => row.PermissionName)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<IdentityOutboxMessageRow>(entity =>
         {
             entity.MapOutboxMessage();
@@ -134,6 +188,40 @@ public sealed class TenantRegistrationRow
     public string Name { get; set; } = string.Empty;
     public DateTimeOffset RegisteredAt { get; set; }
     public string CorrelationId { get; set; } = string.Empty;
+}
+
+public sealed class StaffRoleRow
+{
+    public string Scope { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public bool IsSystem { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+public sealed class StaffDepartmentRow
+{
+    public string Scope { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public bool IsSystem { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+public sealed class StaffPermissionRow
+{
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public bool IsSystem { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+public sealed class StaffRolePermissionRow
+{
+    public string Scope { get; set; } = string.Empty;
+    public string RoleName { get; set; } = string.Empty;
+    public string PermissionName { get; set; } = string.Empty;
+    public DateTimeOffset CreatedAt { get; set; }
 }
 
 public sealed class IdentityOutboxMessageRow : OutboxMessageRowBase

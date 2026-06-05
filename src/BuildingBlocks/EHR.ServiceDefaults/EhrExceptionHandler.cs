@@ -55,13 +55,21 @@ public sealed class EhrExceptionHandler : IExceptionHandler
 
     private static int GetStatusCode(Exception exception)
     {
-        if (exception is ArgumentException || exception is InvalidOperationException)
+        var exceptionTypeName = exception.GetType().Name;
+
+        if (exception is UnauthorizedAccessException)
+        {
+            return StatusCodes.Status403Forbidden;
+        }
+
+        if (exception is ArgumentException || (exception is InvalidOperationException && exceptionTypeName != "TenantNotFoundException"))
         {
             return StatusCodes.Status400BadRequest;
         }
 
-        return exception.GetType().Name switch
+        return exceptionTypeName switch
         {
+            "TenantNotFoundException" => StatusCodes.Status404NotFound,
             "DuplicateStaffUserEmailException" => StatusCodes.Status409Conflict,
             "DbUpdateConcurrencyException" => StatusCodes.Status409Conflict,
             "DbUpdateException" => StatusCodes.Status503ServiceUnavailable,

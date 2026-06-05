@@ -10,6 +10,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using OpenTelemetry.Resources;
+using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 using Scalar.AspNetCore;
 using Serilog;
@@ -86,6 +87,7 @@ public static class ServiceDefaults
         });
 
         var otlpEndpoint = builder.Configuration["OpenTelemetry:OtlpEndpoint"];
+        var consoleExporterEnabled = builder.Configuration.GetValue("OpenTelemetry:ConsoleExporterEnabled", false);
 
         builder.Services
             .AddOpenTelemetry()
@@ -94,12 +96,38 @@ public static class ServiceDefaults
             {
                 tracing
                     .AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation()
-                    .AddConsoleExporter();
+                    .AddHttpClientInstrumentation(options =>
+                    {
+                        options.FilterHttpRequestMessage = request =>
+                            !IsTelemetryExporterRequest(request.RequestUri, otlpEndpoint);
+                    })
+                    .AddSource("EHR.Messaging");
+
+                if (consoleExporterEnabled)
+                {
+                    tracing.AddConsoleExporter();
+                }
 
                 if (!string.IsNullOrWhiteSpace(otlpEndpoint))
                 {
                     tracing.AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint));
+                }
+            })
+            .WithMetrics(metrics =>
+            {
+                metrics
+                    .AddMeter("EHR.Messaging")
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation();
+
+                if (consoleExporterEnabled)
+                {
+                    metrics.AddConsoleExporter();
+                }
+
+                if (!string.IsNullOrWhiteSpace(otlpEndpoint))
+                {
+                    metrics.AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint));
                 }
             });
 
@@ -140,6 +168,18 @@ public static class ServiceDefaults
         }
 
         return builder;
+    }
+
+    private static bool IsTelemetryExporterRequest(Uri? requestUri, string? otlpEndpoint)
+    {
+        if (requestUri is null || string.IsNullOrWhiteSpace(otlpEndpoint) || !Uri.TryCreate(otlpEndpoint, UriKind.Absolute, out var endpoint))
+        {
+            return false;
+        }
+
+        return string.Equals(requestUri.Scheme, endpoint.Scheme, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(requestUri.Host, endpoint.Host, StringComparison.OrdinalIgnoreCase)
+            && requestUri.Port == endpoint.Port;
     }
 
     public static WebApplication UseEhrServiceDefaults(this WebApplication app)

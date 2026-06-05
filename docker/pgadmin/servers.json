@@ -1,0 +1,58 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Tenant DB",
+      "Group": "EHR",
+      "Host": "tenant-db",
+      "Port": 5432,
+      "MaintenanceDB": "ehr_tenant",
+      "Username": "ehr",
+      "SSLMode": "prefer"
+    },
+    "2": {
+      "Name": "Identity DB",
+      "Group": "EHR",
+      "Host": "identity-db",
+      "Port": 5432,
+      "MaintenanceDB": "ehr_identity",
+      "Username": "ehr",
+      "SSLMode": "prefer"
+    },
+    "3": {
+      "Name": "Patient DB",
+      "Group": "EHR",
+      "Host": "patient-db",
+      "Port": 5432,
+      "MaintenanceDB": "ehr_patient",
+      "Username": "ehr",
+      "SSLMode": "prefer"
+    },
+    "4": {
+      "Name": "Appointment DB",
+      "Group": "EHR",
+      "Host": "appointment-db",
+      "Port": 5432,
+      "MaintenanceDB": "ehr_appointment",
+      "Username": "ehr",
+      "SSLMode": "prefer"
+    },
+    "5": {
+      "Name": "Encounter DB",
+      "Group": "EHR",
+      "Host": "encounter-db",
+      "Port": 5432,
+      "MaintenanceDB": "ehr_encounter",
+      "Username": "ehr",
+      "SSLMode": "prefer"
+    },
+    "6": {
+      "Name": "Audit DB",
+      "Group": "EHR",
+      "Host": "audit-db",
+      "Port": 5432,
+      "MaintenanceDB": "ehr_audit",
+      "Username": "ehr",
+      "SSLMode": "prefer"
+    }
+  }
+}

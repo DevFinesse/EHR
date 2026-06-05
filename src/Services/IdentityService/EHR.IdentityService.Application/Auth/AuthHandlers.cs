@@ -54,7 +54,7 @@ public sealed class LoginHandler : ICommandHandler<LoginCommand, Result<TokenRes
 
         staffUser.RecordSuccessfulLogin();
         await _staffUsers.SaveAsync(staffUser, cancellationToken);
-        var token = _tokenIssuer.Issue(staffUser);
+        var token = await _tokenIssuer.IssueAsync(staffUser, cancellationToken);
         await _refreshTokens.StoreAsync(new RefreshTokenRecord(token.RefreshToken, staffUser.Id, DateTimeOffset.UtcNow.AddDays(14), null), cancellationToken);
         return Result<TokenResponse>.Success(token);
     }
@@ -88,14 +88,16 @@ public sealed class InviteStaffHandler : ICommandHandler<InviteStaffCommand, Res
     private readonly ITenantAuthorizationService _tenantAuthorization;
     private readonly IStaffInvitationRepository _invitations;
     private readonly IEmailSender _emailSender;
+    private readonly IStaffMetadataRepository _staffMetadata;
 
-    public InviteStaffHandler(IStaffUserRepository staffUsers, ITenantRegistrationReadModelRepository tenants, ITenantAuthorizationService tenantAuthorization, IStaffInvitationRepository invitations, IEmailSender emailSender)
+    public InviteStaffHandler(IStaffUserRepository staffUsers, ITenantRegistrationReadModelRepository tenants, ITenantAuthorizationService tenantAuthorization, IStaffInvitationRepository invitations, IEmailSender emailSender, IStaffMetadataRepository staffMetadata)
     {
         _staffUsers = staffUsers;
         _tenants = tenants;
         _tenantAuthorization = tenantAuthorization;
         _invitations = invitations;
         _emailSender = emailSender;
+        _staffMetadata = staffMetadata;
     }
 
     public async Task<Result<StaffInvitationResponse>> HandleAsync(InviteStaffCommand command, CancellationToken cancellationToken)
@@ -115,7 +117,19 @@ public sealed class InviteStaffHandler : ICommandHandler<InviteStaffCommand, Res
             return Result<StaffInvitationResponse>.Failure("A staff user with this email already exists.");
         }
 
-        var staffUser = StaffUser.Create(tenantId, command.FullName, command.Email, command.Role, command.Department);
+        var role = await _staffMetadata.NormalizeRoleAsync(tenantId, command.Role, cancellationToken);
+        if (role is null)
+        {
+            return Result<StaffInvitationResponse>.Failure($"Unsupported staff role '{command.Role}'.");
+        }
+
+        var department = await _staffMetadata.NormalizeDepartmentAsync(tenantId, command.Department, cancellationToken);
+        if (department is null)
+        {
+            return Result<StaffInvitationResponse>.Failure($"Unsupported staff department '{command.Department}'.");
+        }
+
+        var staffUser = StaffUser.Create(tenantId, command.FullName, command.Email, role, department);
         var integrationEvent = new StaffUserCreatedEvent(Guid.NewGuid(), staffUser.TenantId, staffUser.Id, staffUser.Role, Guid.NewGuid().ToString("N"));
         await _staffUsers.AddAsync(staffUser, integrationEvent, cancellationToken);
 
@@ -176,7 +190,7 @@ public sealed class AcceptStaffInvitationHandler : ICommandHandler<AcceptStaffIn
 
         await _staffUsers.SaveAsync(staffUser, cancellationToken);
         await _invitations.MarkAcceptedAsync(invitation.Token, cancellationToken);
-        var token = _tokenIssuer.Issue(staffUser);
+        var token = await _tokenIssuer.IssueAsync(staffUser, cancellationToken);
         await _refreshTokens.StoreAsync(new RefreshTokenRecord(token.RefreshToken, staffUser.Id, DateTimeOffset.UtcNow.AddDays(14), null), cancellationToken);
         return Result<TokenResponse>.Success(token);
     }
@@ -361,7 +375,7 @@ public sealed class RefreshAccessTokenHandler : ICommandHandler<RefreshAccessTok
         }
 
         await _refreshTokens.RevokeAsync(command.RefreshToken, cancellationToken);
-        var token = _tokenIssuer.Issue(staffUser);
+        var token = await _tokenIssuer.IssueAsync(staffUser, cancellationToken);
         await _refreshTokens.StoreAsync(new RefreshTokenRecord(token.RefreshToken, staffUser.Id, DateTimeOffset.UtcNow.AddDays(14), null), cancellationToken);
         return Result<TokenResponse>.Success(token);
     }
