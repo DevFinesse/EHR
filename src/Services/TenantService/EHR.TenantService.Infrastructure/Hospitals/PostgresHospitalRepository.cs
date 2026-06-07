@@ -8,12 +8,14 @@ namespace EHR.TenantService.Infrastructure.Hospitals;
 public sealed class PostgresHospitalRepository : IHospitalRepository
 {
     private readonly DbContextOptions<TenantDbContext> _options;
+    private readonly IOutboxPublisherSignal _outboxSignal;
 
-    public PostgresHospitalRepository(string connectionString)
+    public PostgresHospitalRepository(string connectionString, IOutboxPublisherSignal outboxSignal)
     {
         _options = new DbContextOptionsBuilder<TenantDbContext>()
             .UseNpgsql(connectionString)
             .Options;
+        _outboxSignal = outboxSignal;
     }
 
     public async Task AddAsync(Hospital hospital, IntegrationEvent integrationEvent, CancellationToken cancellationToken)
@@ -38,6 +40,7 @@ public sealed class PostgresHospitalRepository : IHospitalRepository
         db.OutboxMessages.Add(TenantOutboxMessageRow.FromIntegrationEvent(integrationEvent));
 
         await db.SaveChangesAsync(cancellationToken);
+        _outboxSignal.Signal();
     }
 
     public async Task<Hospital?> GetByIdAsync(Guid id, CancellationToken cancellationToken)

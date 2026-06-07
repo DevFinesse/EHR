@@ -10,11 +10,13 @@ public sealed class PostgresPatientRepository : IPatientRepository
 {
     private readonly DbContextOptions<PatientDbContext> _options;
     private readonly ICurrentUserContext _currentUser;
+    private readonly IOutboxPublisherSignal _outboxSignal;
 
-    public PostgresPatientRepository(string connectionString, ICurrentUserContext currentUser)
+    public PostgresPatientRepository(string connectionString, ICurrentUserContext currentUser, IOutboxPublisherSignal outboxSignal)
     {
         _options = new DbContextOptionsBuilder<PatientDbContext>().UseNpgsql(connectionString).Options;
         _currentUser = currentUser;
+        _outboxSignal = outboxSignal;
     }
 
     public async Task AddAsync(Patient patient, IntegrationEvent integrationEvent, CancellationToken cancellationToken)
@@ -40,6 +42,7 @@ public sealed class PostgresPatientRepository : IPatientRepository
         db.OutboxMessages.Add(OutboxMessageRow.FromIntegrationEvent(integrationEvent));
 
         await db.SaveChangesAsync(cancellationToken);
+        _outboxSignal.Signal();
     }
 
     public async Task<Patient?> GetByIdAsync(Guid id, CancellationToken cancellationToken)

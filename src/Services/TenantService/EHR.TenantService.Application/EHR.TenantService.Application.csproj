@@ -4,6 +4,7 @@
     <ProjectReference Include="..\EHR.TenantService.Domain\EHR.TenantService.Domain.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\EHR.Cqrs\EHR.Cqrs.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\EHR.Messaging\EHR.Messaging.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\EHR.SharedKernel\EHR.SharedKernel.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

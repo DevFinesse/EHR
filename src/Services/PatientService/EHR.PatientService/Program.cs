@@ -19,19 +19,24 @@ if (string.IsNullOrWhiteSpace(patientDb))
 {
     builder.Services.AddSingleton<IPatientRepository>(provider => new InMemoryPatientRepository(provider.GetRequiredService<IEventBus>()));
     builder.Services.AddSingleton<ITenantRegistrationReadModelRepository, InMemoryTenantRegistrationReadModelRepository>();
+    builder.Services.AddScoped<IQueryHandler<GetPatientByIdQuery, Patient?>, GetPatientByIdHandler>();
 }
 else
 {
     await ServiceDefaults.RunWithStartupRetryAsync(() => PatientDatabaseMigrator.MigrateAsync(patientDb), "Patient database migration");
-    builder.Services.AddScoped<IPatientRepository>(provider => new PostgresPatientRepository(patientDb, provider.GetRequiredService<EHR.SharedKernel.Authorization.ICurrentUserContext>()));
+    builder.Services.AddScoped<IPatientRepository>(provider => new PostgresPatientRepository(
+        patientDb,
+        provider.GetRequiredService<EHR.SharedKernel.Authorization.ICurrentUserContext>(),
+        provider.GetRequiredService<IOutboxPublisherSignal>()));
     builder.Services.AddSingleton<ITenantRegistrationReadModelRepository>(_ => new PostgresTenantRegistrationReadModelRepository(patientDb));
+    builder.Services.AddScoped<IQueryHandler<GetPatientByIdQuery, Patient?>>(provider => new DapperPatientQueryHandler(patientDb, provider.GetRequiredService<EHR.SharedKernel.Authorization.ITenantAuthorizationService>()));
     builder.Services.AddHostedService(provider => new PatientOutboxPublisherWorker(
         patientDb,
         provider.GetRequiredService<IEventBus>(),
+        provider.GetRequiredService<IOutboxPublisherSignal>(),
         provider.GetRequiredService<ILogger<PatientOutboxPublisherWorker>>()));
 }
 builder.Services.AddScoped<ICommandHandler<RegisterPatientCommand, Patient>, RegisterPatientHandler>();
-builder.Services.AddScoped<IQueryHandler<GetPatientByIdQuery, Patient?>, GetPatientByIdHandler>();
 builder.Services.AddSingleton<IIntegrationEventHandler, TenantRegisteredIntegrationEventHandler>();
 
 var app = builder.Build();

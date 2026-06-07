@@ -8,6 +8,8 @@ public static class MessagingRegistration
 {
     public static IServiceCollection AddEhrMessaging(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddSingleton<IOutboxPublisherSignal, OutboxPublisherSignal>();
+
         var bootstrapServers = configuration["Kafka:BootstrapServers"];
         if (string.IsNullOrWhiteSpace(bootstrapServers))
         {

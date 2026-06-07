@@ -8,9 +8,13 @@ namespace EHR.AppointmentService.Infrastructure.Appointments;
 public sealed class PostgresAppointmentRepository : IAppointmentRepository
 {
     private readonly DbContextOptions<AppointmentDbContext> _options;
+    private readonly IOutboxPublisherSignal _outboxSignal;
 
-    public PostgresAppointmentRepository(string connectionString) =>
+    public PostgresAppointmentRepository(string connectionString, IOutboxPublisherSignal outboxSignal)
+    {
         _options = new DbContextOptionsBuilder<AppointmentDbContext>().UseNpgsql(connectionString).Options;
+        _outboxSignal = outboxSignal;
+    }
 
     public async Task AddAsync(Appointment appointment, IntegrationEvent integrationEvent, CancellationToken cancellationToken)
     {
@@ -45,6 +49,10 @@ public sealed class PostgresAppointmentRepository : IAppointmentRepository
         }
 
         await db.SaveChangesAsync(cancellationToken);
+        if (integrationEvent is not null)
+        {
+            _outboxSignal.Signal();
+        }
     }
 
     public async Task<Appointment?> GetByIdAsync(Guid id, CancellationToken cancellationToken)

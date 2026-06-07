@@ -1,3 +1,6 @@
+using System.Collections.Concurrent;
+using System.Linq.Expressions;
+
 namespace EHR.Cqrs;
 
 public interface ICommand<TResponse>;
@@ -25,6 +28,8 @@ public interface ICqrsDispatcher
 
 public sealed class CqrsDispatcher : ICqrsDispatcher
 {
+    private static readonly ConcurrentDictionary<HandlerInvocationKey, Delegate> InvocationCache = new();
+
     private readonly IServiceProvider _serviceProvider;
 
     public CqrsDispatcher(IServiceProvider serviceProvider)
@@ -52,12 +57,35 @@ public sealed class CqrsDispatcher : ICqrsDispatcher
 
     private static Task<TResponse> InvokeHandlerAsync<TResponse>(object handler, object message, CancellationToken cancellationToken)
     {
-        var method = handler.GetType().GetMethod("HandleAsync")
-            ?? throw new InvalidOperationException($"Handler {handler.GetType().Name} does not expose HandleAsync.");
+        var key = new HandlerInvocationKey(handler.GetType(), message.GetType(), typeof(TResponse));
+        var invoker = (Func<object, object, CancellationToken, Task<TResponse>>)InvocationCache.GetOrAdd(
+            key,
+            static cacheKey => CreateInvoker<TResponse>(cacheKey.HandlerType, cacheKey.MessageType));
 
-        var result = method.Invoke(handler, [message, cancellationToken])
-            ?? throw new InvalidOperationException($"Handler {handler.GetType().Name} returned null.");
-
-        return (Task<TResponse>)result;
+        return invoker(handler, message, cancellationToken);
     }
+
+    private static Func<object, object, CancellationToken, Task<TResponse>> CreateInvoker<TResponse>(Type handlerType, Type messageType)
+    {
+        var method = handlerType.GetMethod("HandleAsync", [messageType, typeof(CancellationToken)])
+            ?? throw new InvalidOperationException($"Handler {handlerType.Name} does not expose HandleAsync.");
+
+        var handler = Expression.Parameter(typeof(object), "handler");
+        var message = Expression.Parameter(typeof(object), "message");
+        var cancellationToken = Expression.Parameter(typeof(CancellationToken), "cancellationToken");
+        var call = Expression.Call(
+            Expression.Convert(handler, handlerType),
+            method,
+            Expression.Convert(message, messageType),
+            cancellationToken);
+
+        var body = Expression.Convert(call, typeof(Task<TResponse>));
+        return Expression.Lambda<Func<object, object, CancellationToken, Task<TResponse>>>(
+            body,
+            handler,
+            message,
+            cancellationToken).Compile();
+    }
+
+    private readonly record struct HandlerInvocationKey(Type HandlerType, Type MessageType, Type ResponseType);
 }

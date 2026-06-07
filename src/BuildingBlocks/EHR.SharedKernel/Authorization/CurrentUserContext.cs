@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Claims;
 
 namespace EHR.SharedKernel.Authorization;
@@ -11,6 +12,8 @@ public interface ICurrentUserContext
     string? Role { get; }
 
     IReadOnlyCollection<string> Permissions { get; }
+
+    string CorrelationId { get; }
 
     bool IsAuthenticated { get; }
 
@@ -28,6 +31,8 @@ public sealed class AnonymousCurrentUserContext : ICurrentUserContext
     public string? Role => null;
 
     public IReadOnlyCollection<string> Permissions => [];
+
+    public string CorrelationId => CorrelationIds.Current;
 
     public bool IsAuthenticated => false;
 
@@ -53,6 +58,8 @@ public sealed class ClaimsPrincipalCurrentUserContext : ICurrentUserContext
 
     public IReadOnlyCollection<string> Permissions => _principal.FindAll("permission").Select(claim => claim.Value).ToArray();
 
+    public string CorrelationId => FindFirstValue("correlation_id") ?? CorrelationIds.Current;
+
     public bool IsAuthenticated => _principal.Identity?.IsAuthenticated == true;
 
     public bool IsSuperAdmin => string.Equals(Role, PlatformRoles.SuperAdmin, StringComparison.OrdinalIgnoreCase);
@@ -61,4 +68,9 @@ public sealed class ClaimsPrincipalCurrentUserContext : ICurrentUserContext
         Permissions.Any(value => string.Equals(value, permission, StringComparison.OrdinalIgnoreCase));
 
     private string? FindFirstValue(string claimType) => _principal.FindFirst(claimType)?.Value;
+}
+
+public static class CorrelationIds
+{
+    public static string Current => Activity.Current?.Id ?? Guid.NewGuid().ToString("N");
 }

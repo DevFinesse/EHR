@@ -10,14 +10,19 @@ public sealed class PostgresStaffUserRepository : IStaffUserRepository
 {
     private const string EmailUniqueConstraint = "ix_staff_users_email";
     private readonly DbContextOptions<IdentityDbContext> _options;
+    private readonly IOutboxPublisherSignal _outboxSignal;
 
-    public PostgresStaffUserRepository(string connectionString) =>
+    public PostgresStaffUserRepository(string connectionString, IOutboxPublisherSignal outboxSignal)
+    {
         _options = new DbContextOptionsBuilder<IdentityDbContext>().UseNpgsql(connectionString).Options;
+        _outboxSignal = outboxSignal;
+    }
 
     public async Task AddAsync(StaffUser staffUser, IntegrationEvent integrationEvent, CancellationToken cancellationToken)
     {
         await using var db = new IdentityDbContext(_options);
         var row = await db.StaffUsers.SingleOrDefaultAsync(existing => existing.Id == staffUser.Id, cancellationToken);
+        var outboxMessageAdded = false;
         if (row is null)
         {
             var existingEmailRow = await db.StaffUsers.AsNoTracking().SingleOrDefaultAsync(existing => existing.Email == staffUser.Email, cancellationToken);
@@ -28,6 +33,7 @@ public sealed class PostgresStaffUserRepository : IStaffUserRepository
 
             db.StaffUsers.Add(ToRow(staffUser));
             db.OutboxMessages.Add(IdentityOutboxMessageRow.FromIntegrationEvent(integrationEvent));
+            outboxMessageAdded = true;
         }
         else
         {
@@ -37,6 +43,10 @@ public sealed class PostgresStaffUserRepository : IStaffUserRepository
         try
         {
             await db.SaveChangesAsync(cancellationToken);
+            if (outboxMessageAdded)
+            {
+                _outboxSignal.Signal();
+            }
         }
         catch (DbUpdateException exception) when (IsDuplicateEmailException(exception))
         {

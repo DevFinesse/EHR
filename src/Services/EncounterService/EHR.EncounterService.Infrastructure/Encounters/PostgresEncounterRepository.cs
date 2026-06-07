@@ -9,9 +9,13 @@ namespace EHR.EncounterService.Infrastructure.Encounters;
 public sealed class PostgresEncounterRepository : IEncounterRepository
 {
     private readonly DbContextOptions<EncounterDbContext> _options;
+    private readonly IOutboxPublisherSignal _outboxSignal;
 
-    public PostgresEncounterRepository(string connectionString) =>
+    public PostgresEncounterRepository(string connectionString, IOutboxPublisherSignal outboxSignal)
+    {
         _options = new DbContextOptionsBuilder<EncounterDbContext>().UseNpgsql(connectionString).Options;
+        _outboxSignal = outboxSignal;
+    }
 
     public Task AddAsync(Encounter encounter, IntegrationEvent integrationEvent, CancellationToken cancellationToken) =>
         SaveAsync(encounter, integrationEvent, cancellationToken);
@@ -48,6 +52,10 @@ public sealed class PostgresEncounterRepository : IEncounterRepository
         }
 
         await db.SaveChangesAsync(cancellationToken);
+        if (integrationEvent is not null)
+        {
+            _outboxSignal.Signal();
+        }
     }
 
     public async Task<Encounter?> GetByIdAsync(Guid id, CancellationToken cancellationToken)

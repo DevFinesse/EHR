@@ -6,8 +6,8 @@ namespace EHR.AppointmentService.Infrastructure.Appointments;
 
 public sealed class AppointmentOutboxPublisherWorker : OutboxPublisherWorkerBase<AppointmentDbContext, AppointmentOutboxMessageRow>
 {
-    public AppointmentOutboxPublisherWorker(string connectionString, IEventBus eventBus, ILogger<AppointmentOutboxPublisherWorker> logger)
-        : base(new DbContextOptionsBuilder<AppointmentDbContext>().UseNpgsql(connectionString).Options, eventBus, logger)
+    public AppointmentOutboxPublisherWorker(string connectionString, IEventBus eventBus, IOutboxPublisherSignal signal, ILogger<AppointmentOutboxPublisherWorker> logger)
+        : base(new DbContextOptionsBuilder<AppointmentDbContext>().UseNpgsql(connectionString).Options, eventBus, signal, logger)
     {
     }
 

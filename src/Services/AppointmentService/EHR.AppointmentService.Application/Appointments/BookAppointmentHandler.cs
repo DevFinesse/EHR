@@ -10,11 +10,13 @@ public sealed class BookAppointmentHandler : ICommandHandler<BookAppointmentComm
 {
     private readonly IAppointmentRepository _repository;
     private readonly ITenantAuthorizationService _tenantAuthorization;
+    private readonly ICurrentUserContext _currentUser;
 
-    public BookAppointmentHandler(IAppointmentRepository repository, ITenantAuthorizationService tenantAuthorization)
+    public BookAppointmentHandler(IAppointmentRepository repository, ITenantAuthorizationService tenantAuthorization, ICurrentUserContext currentUser)
     {
         _repository = repository;
         _tenantAuthorization = tenantAuthorization;
+        _currentUser = currentUser;
     }
 
     public async Task<Result<Appointment>> HandleAsync(BookAppointmentCommand command, CancellationToken cancellationToken)
@@ -28,7 +30,7 @@ public sealed class BookAppointmentHandler : ICommandHandler<BookAppointmentComm
         _tenantAuthorization.EnsureCanAccessTenant(tenantId);
 
         var appointment = Appointment.Book(tenantId, command.PatientId, command.PractitionerId, command.ScheduledFor, command.Reason);
-        var integrationEvent = new AppointmentBookedEvent(Guid.NewGuid(), appointment.TenantId, appointment.Id, appointment.PatientId, appointment.PractitionerId, Guid.NewGuid().ToString("N"));
+        var integrationEvent = new AppointmentBookedEvent(Guid.NewGuid(), appointment.TenantId, appointment.Id, appointment.PatientId, appointment.PractitionerId, _currentUser.CorrelationId);
         await _repository.AddAsync(appointment, integrationEvent, cancellationToken);
         return Result<Appointment>.Success(appointment);
     }

@@ -10,11 +10,13 @@ public sealed class StartEncounterHandler : ICommandHandler<StartEncounterComman
 {
     private readonly IEncounterRepository _repository;
     private readonly ITenantAuthorizationService _tenantAuthorization;
+    private readonly ICurrentUserContext _currentUser;
 
-    public StartEncounterHandler(IEncounterRepository repository, ITenantAuthorizationService tenantAuthorization)
+    public StartEncounterHandler(IEncounterRepository repository, ITenantAuthorizationService tenantAuthorization, ICurrentUserContext currentUser)
     {
         _repository = repository;
         _tenantAuthorization = tenantAuthorization;
+        _currentUser = currentUser;
     }
 
     public async Task<Encounter> HandleAsync(StartEncounterCommand command, CancellationToken cancellationToken)
@@ -23,7 +25,7 @@ public sealed class StartEncounterHandler : ICommandHandler<StartEncounterComman
         _tenantAuthorization.EnsureCanAccessTenant(tenantId);
 
         var encounter = Encounter.Start(tenantId, command.AppointmentId, command.PatientId, command.PractitionerId, command.VisitType);
-        var integrationEvent = new EncounterStartedEvent(Guid.NewGuid(), encounter.TenantId, encounter.Id, encounter.PatientId, Guid.NewGuid().ToString("N"));
+        var integrationEvent = new EncounterStartedEvent(Guid.NewGuid(), encounter.TenantId, encounter.Id, encounter.PatientId, _currentUser.CorrelationId);
         await _repository.AddAsync(encounter, integrationEvent, cancellationToken);
         return encounter;
     }
@@ -33,11 +35,13 @@ public sealed class RecordVitalsHandler : ICommandHandler<RecordVitalsCommand, R
 {
     private readonly IEncounterRepository _repository;
     private readonly ITenantAuthorizationService _tenantAuthorization;
+    private readonly ICurrentUserContext _currentUser;
 
-    public RecordVitalsHandler(IEncounterRepository repository, ITenantAuthorizationService tenantAuthorization)
+    public RecordVitalsHandler(IEncounterRepository repository, ITenantAuthorizationService tenantAuthorization, ICurrentUserContext currentUser)
     {
         _repository = repository;
         _tenantAuthorization = tenantAuthorization;
+        _currentUser = currentUser;
     }
 
     public async Task<Result<Encounter>> HandleAsync(RecordVitalsCommand command, CancellationToken cancellationToken)
@@ -51,7 +55,7 @@ public sealed class RecordVitalsHandler : ICommandHandler<RecordVitalsCommand, R
         _tenantAuthorization.EnsureCanAccessTenant(encounter.TenantId);
 
         encounter.RecordVitals(new VitalSigns(command.TemperatureCelsius, command.SystolicBloodPressure, command.DiastolicBloodPressure, command.PulseRate, command.OxygenSaturation));
-        var integrationEvent = new VitalsRecordedEvent(Guid.NewGuid(), encounter.TenantId, encounter.Id, Guid.NewGuid().ToString("N"));
+        var integrationEvent = new VitalsRecordedEvent(Guid.NewGuid(), encounter.TenantId, encounter.Id, _currentUser.CorrelationId);
         await _repository.SaveAsync(encounter, integrationEvent, cancellationToken);
         return Result<Encounter>.Success(encounter);
     }
@@ -61,11 +65,13 @@ public sealed class AddDiagnosisHandler : ICommandHandler<AddDiagnosisCommand, R
 {
     private readonly IEncounterRepository _repository;
     private readonly ITenantAuthorizationService _tenantAuthorization;
+    private readonly ICurrentUserContext _currentUser;
 
-    public AddDiagnosisHandler(IEncounterRepository repository, ITenantAuthorizationService tenantAuthorization)
+    public AddDiagnosisHandler(IEncounterRepository repository, ITenantAuthorizationService tenantAuthorization, ICurrentUserContext currentUser)
     {
         _repository = repository;
         _tenantAuthorization = tenantAuthorization;
+        _currentUser = currentUser;
     }
 
     public async Task<Result<Encounter>> HandleAsync(AddDiagnosisCommand command, CancellationToken cancellationToken)
@@ -80,7 +86,7 @@ public sealed class AddDiagnosisHandler : ICommandHandler<AddDiagnosisCommand, R
 
         var code = command.Code.Trim().ToUpperInvariant();
         encounter.AddDiagnosis(new Diagnosis(code, command.Description.Trim(), command.Certainty.Trim()));
-        var integrationEvent = new DiagnosisAddedEvent(Guid.NewGuid(), encounter.TenantId, encounter.Id, code, Guid.NewGuid().ToString("N"));
+        var integrationEvent = new DiagnosisAddedEvent(Guid.NewGuid(), encounter.TenantId, encounter.Id, code, _currentUser.CorrelationId);
         await _repository.SaveAsync(encounter, integrationEvent, cancellationToken);
         return Result<Encounter>.Success(encounter);
     }
@@ -90,11 +96,13 @@ public sealed class CompleteEncounterHandler : ICommandHandler<CompleteEncounter
 {
     private readonly IEncounterRepository _repository;
     private readonly ITenantAuthorizationService _tenantAuthorization;
+    private readonly ICurrentUserContext _currentUser;
 
-    public CompleteEncounterHandler(IEncounterRepository repository, ITenantAuthorizationService tenantAuthorization)
+    public CompleteEncounterHandler(IEncounterRepository repository, ITenantAuthorizationService tenantAuthorization, ICurrentUserContext currentUser)
     {
         _repository = repository;
         _tenantAuthorization = tenantAuthorization;
+        _currentUser = currentUser;
     }
 
     public async Task<Result<Encounter>> HandleAsync(CompleteEncounterCommand command, CancellationToken cancellationToken)
@@ -113,7 +121,7 @@ public sealed class CompleteEncounterHandler : ICommandHandler<CompleteEncounter
             return completion;
         }
 
-        var integrationEvent = new EncounterCompletedEvent(Guid.NewGuid(), encounter.TenantId, encounter.Id, Guid.NewGuid().ToString("N"));
+        var integrationEvent = new EncounterCompletedEvent(Guid.NewGuid(), encounter.TenantId, encounter.Id, _currentUser.CorrelationId);
         await _repository.SaveAsync(encounter, integrationEvent, cancellationToken);
         return completion;
     }

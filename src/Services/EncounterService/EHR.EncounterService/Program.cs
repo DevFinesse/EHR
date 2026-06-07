@@ -17,21 +17,25 @@ var encounterDb = builder.Configuration.GetConnectionString("EncounterDb");
 if (string.IsNullOrWhiteSpace(encounterDb))
 {
     builder.Services.AddSingleton<IEncounterRepository>(provider => new InMemoryEncounterRepository(provider.GetRequiredService<IEventBus>()));
+    builder.Services.AddScoped<IQueryHandler<GetEncounterByIdQuery, Encounter?>, GetEncounterByIdHandler>();
 }
 else
 {
     await ServiceDefaults.RunWithStartupRetryAsync(() => EncounterDatabaseMigrator.MigrateAsync(encounterDb), "Encounter database migration");
-    builder.Services.AddSingleton<IEncounterRepository>(_ => new PostgresEncounterRepository(encounterDb));
+    builder.Services.AddSingleton<IEncounterRepository>(provider => new PostgresEncounterRepository(
+        encounterDb,
+        provider.GetRequiredService<IOutboxPublisherSignal>()));
+    builder.Services.AddScoped<IQueryHandler<GetEncounterByIdQuery, Encounter?>>(provider => new DapperEncounterQueryHandler(encounterDb, provider.GetRequiredService<EHR.SharedKernel.Authorization.ITenantAuthorizationService>()));
     builder.Services.AddHostedService(provider => new EncounterOutboxPublisherWorker(
         encounterDb,
         provider.GetRequiredService<IEventBus>(),
+        provider.GetRequiredService<IOutboxPublisherSignal>(),
         provider.GetRequiredService<ILogger<EncounterOutboxPublisherWorker>>()));
 }
 builder.Services.AddScoped<ICommandHandler<StartEncounterCommand, Encounter>, StartEncounterHandler>();
 builder.Services.AddScoped<ICommandHandler<RecordVitalsCommand, Result<Encounter>>, RecordVitalsHandler>();
 builder.Services.AddScoped<ICommandHandler<AddDiagnosisCommand, Result<Encounter>>, AddDiagnosisHandler>();
 builder.Services.AddScoped<ICommandHandler<CompleteEncounterCommand, Result<Encounter>>, CompleteEncounterHandler>();
-builder.Services.AddScoped<IQueryHandler<GetEncounterByIdQuery, Encounter?>, GetEncounterByIdHandler>();
 
 var app = builder.Build();
 

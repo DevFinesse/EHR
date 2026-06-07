@@ -26,21 +26,26 @@ if (string.IsNullOrWhiteSpace(identityDb))
     builder.Services.AddSingleton<IRefreshTokenRepository, InMemoryRefreshTokenRepository>();
     builder.Services.AddSingleton<IStaffInvitationRepository, InMemoryStaffInvitationRepository>();
     builder.Services.AddSingleton<IPasswordResetTokenRepository, InMemoryPasswordResetTokenRepository>();
+    builder.Services.AddScoped<IQueryHandler<GetStaffUserByIdQuery, StaffUser?>, GetStaffUserByIdHandler>();
 }
 else
 {
     await ServiceDefaults.RunWithStartupRetryAsync(() => IdentityDatabaseMigrator.MigrateAsync(identityDb), "Identity database migration");
     await ServiceDefaults.RunWithStartupRetryAsync(() => IdentityStaffMetadataSeeder.SeedAsync(identityDb), "Identity staff metadata seed");
     await ServiceDefaults.RunWithStartupRetryAsync(() => IdentityDevelopmentSeeder.SeedAsync(identityDb, new Pbkdf2PasswordHasher(), builder.Configuration, builder.Environment), "Identity development admin seed");
-    builder.Services.AddSingleton<IStaffUserRepository>(_ => new PostgresStaffUserRepository(identityDb));
+    builder.Services.AddSingleton<IStaffUserRepository>(provider => new PostgresStaffUserRepository(
+        identityDb,
+        provider.GetRequiredService<IOutboxPublisherSignal>()));
     builder.Services.AddSingleton<ITenantRegistrationReadModelRepository>(_ => new PostgresTenantRegistrationReadModelRepository(identityDb));
     builder.Services.AddSingleton<IStaffMetadataRepository>(_ => new PostgresStaffMetadataRepository(identityDb));
     builder.Services.AddSingleton<IRefreshTokenRepository>(_ => new PostgresRefreshTokenRepository(identityDb));
     builder.Services.AddSingleton<IStaffInvitationRepository>(_ => new PostgresStaffInvitationRepository(identityDb));
     builder.Services.AddSingleton<IPasswordResetTokenRepository>(_ => new PostgresPasswordResetTokenRepository(identityDb));
+    builder.Services.AddScoped<IQueryHandler<GetStaffUserByIdQuery, StaffUser?>>(provider => new DapperStaffUserQueryHandler(identityDb, provider.GetRequiredService<EHR.SharedKernel.Authorization.ITenantAuthorizationService>()));
     builder.Services.AddHostedService(provider => new IdentityOutboxPublisherWorker(
         identityDb,
         provider.GetRequiredService<IEventBus>(),
+        provider.GetRequiredService<IOutboxPublisherSignal>(),
         provider.GetRequiredService<ILogger<IdentityOutboxPublisherWorker>>()));
 }
 builder.Services.AddSingleton<ITokenIssuer, JwtTokenIssuer>();
@@ -49,7 +54,6 @@ builder.Services.AddSingleton<ITotpProvider, Rfc6238TotpProvider>();
 builder.Services.AddSingleton<IRecoveryCodeProtector, RecoveryCodeProtector>();
 builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
 builder.Services.AddScoped<ICommandHandler<CreateStaffUserCommand, StaffUser>, CreateStaffUserHandler>();
-builder.Services.AddScoped<IQueryHandler<GetStaffUserByIdQuery, StaffUser?>, GetStaffUserByIdHandler>();
 builder.Services.AddSingleton<IIntegrationEventHandler, TenantRegisteredIntegrationEventHandler>();
 builder.Services.AddScoped<ICommandHandler<LoginCommand, Result<TokenResponse>>, LoginHandler>();
 builder.Services.AddScoped<ICommandHandler<RefreshAccessTokenCommand, Result<TokenResponse>>, RefreshAccessTokenHandler>();

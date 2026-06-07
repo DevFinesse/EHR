@@ -12,13 +12,15 @@ public sealed class CreateStaffUserHandler : ICommandHandler<CreateStaffUserComm
     private readonly ITenantRegistrationReadModelRepository _tenants;
     private readonly ITenantAuthorizationService _tenantAuthorization;
     private readonly IStaffMetadataRepository _staffMetadata;
+    private readonly ICurrentUserContext _currentUser;
 
-    public CreateStaffUserHandler(IStaffUserRepository repository, ITenantRegistrationReadModelRepository tenants, ITenantAuthorizationService tenantAuthorization, IStaffMetadataRepository staffMetadata)
+    public CreateStaffUserHandler(IStaffUserRepository repository, ITenantRegistrationReadModelRepository tenants, ITenantAuthorizationService tenantAuthorization, IStaffMetadataRepository staffMetadata, ICurrentUserContext currentUser)
     {
         _repository = repository;
         _tenants = tenants;
         _tenantAuthorization = tenantAuthorization;
         _staffMetadata = staffMetadata;
+        _currentUser = currentUser;
     }
 
     public async Task<StaffUser> HandleAsync(CreateStaffUserCommand command, CancellationToken cancellationToken)
@@ -45,7 +47,7 @@ public sealed class CreateStaffUserHandler : ICommandHandler<CreateStaffUserComm
         }
 
         var staffUser = StaffUser.Create(tenantId, command.FullName, command.Email, role, department);
-        var integrationEvent = new StaffUserCreatedEvent(Guid.NewGuid(), staffUser.TenantId, staffUser.Id, staffUser.Role, Guid.NewGuid().ToString("N"));
+        var integrationEvent = new StaffUserCreatedEvent(Guid.NewGuid(), staffUser.TenantId, staffUser.Id, staffUser.Role, _currentUser.CorrelationId);
         await _repository.AddAsync(staffUser, integrationEvent, cancellationToken);
         return staffUser;
     }

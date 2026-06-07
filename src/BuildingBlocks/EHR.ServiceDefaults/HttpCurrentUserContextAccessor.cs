@@ -25,6 +25,11 @@ public sealed class HttpCurrentUserContextAccessor : ICurrentUserContext
 
     public IReadOnlyCollection<string> Permissions => Current.Permissions;
 
+    public string CorrelationId =>
+        _httpContextAccessor.HttpContext is { } context
+            ? System.Diagnostics.Activity.Current?.Id ?? context.TraceIdentifier
+            : Current.CorrelationId;
+
     public bool IsAuthenticated => Current.IsAuthenticated;
 
     public bool IsSuperAdmin => Current.IsSuperAdmin;

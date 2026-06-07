@@ -89,8 +89,9 @@ public sealed class InviteStaffHandler : ICommandHandler<InviteStaffCommand, Res
     private readonly IStaffInvitationRepository _invitations;
     private readonly IEmailSender _emailSender;
     private readonly IStaffMetadataRepository _staffMetadata;
+    private readonly ICurrentUserContext _currentUser;
 
-    public InviteStaffHandler(IStaffUserRepository staffUsers, ITenantRegistrationReadModelRepository tenants, ITenantAuthorizationService tenantAuthorization, IStaffInvitationRepository invitations, IEmailSender emailSender, IStaffMetadataRepository staffMetadata)
+    public InviteStaffHandler(IStaffUserRepository staffUsers, ITenantRegistrationReadModelRepository tenants, ITenantAuthorizationService tenantAuthorization, IStaffInvitationRepository invitations, IEmailSender emailSender, IStaffMetadataRepository staffMetadata, ICurrentUserContext currentUser)
     {
         _staffUsers = staffUsers;
         _tenants = tenants;
@@ -98,6 +99,7 @@ public sealed class InviteStaffHandler : ICommandHandler<InviteStaffCommand, Res
         _invitations = invitations;
         _emailSender = emailSender;
         _staffMetadata = staffMetadata;
+        _currentUser = currentUser;
     }
 
     public async Task<Result<StaffInvitationResponse>> HandleAsync(InviteStaffCommand command, CancellationToken cancellationToken)
@@ -130,7 +132,7 @@ public sealed class InviteStaffHandler : ICommandHandler<InviteStaffCommand, Res
         }
 
         var staffUser = StaffUser.Create(tenantId, command.FullName, command.Email, role, department);
-        var integrationEvent = new StaffUserCreatedEvent(Guid.NewGuid(), staffUser.TenantId, staffUser.Id, staffUser.Role, Guid.NewGuid().ToString("N"));
+        var integrationEvent = new StaffUserCreatedEvent(Guid.NewGuid(), staffUser.TenantId, staffUser.Id, staffUser.Role, _currentUser.CorrelationId);
         await _staffUsers.AddAsync(staffUser, integrationEvent, cancellationToken);
 
         var invitation = new StaffInvitation(CreateToken(), staffUser.Id, DateTimeOffset.UtcNow.AddDays(7), null);

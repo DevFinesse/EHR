@@ -6,8 +6,8 @@ namespace EHR.EncounterService.Infrastructure.Encounters;
 
 public sealed class EncounterOutboxPublisherWorker : OutboxPublisherWorkerBase<EncounterDbContext, EncounterOutboxMessageRow>
 {
-    public EncounterOutboxPublisherWorker(string connectionString, IEventBus eventBus, ILogger<EncounterOutboxPublisherWorker> logger)
-        : base(new DbContextOptionsBuilder<EncounterDbContext>().UseNpgsql(connectionString).Options, eventBus, logger)
+    public EncounterOutboxPublisherWorker(string connectionString, IEventBus eventBus, IOutboxPublisherSignal signal, ILogger<EncounterOutboxPublisherWorker> logger)
+        : base(new DbContextOptionsBuilder<EncounterDbContext>().UseNpgsql(connectionString).Options, eventBus, signal, logger)
     {
     }
 

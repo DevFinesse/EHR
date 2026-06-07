@@ -12,12 +12,14 @@ public abstract class OutboxPublisherWorkerBase<TDbContext, TOutboxMessage> : Ba
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(2);
     private readonly DbContextOptions<TDbContext> _options;
     private readonly IEventBus _eventBus;
+    private readonly IOutboxPublisherSignal _signal;
     private readonly ILogger _logger;
 
-    protected OutboxPublisherWorkerBase(DbContextOptions<TDbContext> options, IEventBus eventBus, ILogger logger)
+    protected OutboxPublisherWorkerBase(DbContextOptions<TDbContext> options, IEventBus eventBus, IOutboxPublisherSignal signal, ILogger logger)
     {
         _options = options;
         _eventBus = eventBus;
+        _signal = signal;
         _logger = logger;
     }
 
@@ -40,7 +42,7 @@ public abstract class OutboxPublisherWorkerBase<TDbContext, TOutboxMessage> : Ba
                 _logger.LogError(exception, "Outbox publisher failed while processing a batch.");
             }
 
-            await Task.Delay(PollInterval, stoppingToken);
+            await _signal.WaitAsync(PollInterval, stoppingToken);
         }
     }
 
@@ -90,6 +92,10 @@ public abstract class OutboxPublisherWorkerBase<TDbContext, TOutboxMessage> : Ba
         if (messages.Count > 0)
         {
             await db.SaveChangesAsync(cancellationToken);
+            if (messages.Count == 20)
+            {
+                _signal.Signal();
+            }
         }
     }
 

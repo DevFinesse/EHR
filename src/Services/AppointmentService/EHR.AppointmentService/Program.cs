@@ -20,20 +20,24 @@ if (string.IsNullOrWhiteSpace(appointmentDb))
 {
     builder.Services.AddSingleton<IAppointmentRepository>(provider => new InMemoryAppointmentRepository(provider.GetRequiredService<IEventBus>()));
     builder.Services.AddSingleton<IKnownPatientRepository, InMemoryKnownPatientRepository>();
+    builder.Services.AddScoped<IQueryHandler<GetAppointmentByIdQuery, Appointment?>, GetAppointmentByIdHandler>();
 }
 else
 {
     await ServiceDefaults.RunWithStartupRetryAsync(() => AppointmentDatabaseMigrator.MigrateAsync(appointmentDb), "Appointment database migration");
-    builder.Services.AddSingleton<IAppointmentRepository>(_ => new PostgresAppointmentRepository(appointmentDb));
+    builder.Services.AddSingleton<IAppointmentRepository>(provider => new PostgresAppointmentRepository(
+        appointmentDb,
+        provider.GetRequiredService<IOutboxPublisherSignal>()));
     builder.Services.AddSingleton<IKnownPatientRepository>(_ => new PostgresKnownPatientRepository(appointmentDb));
+    builder.Services.AddScoped<IQueryHandler<GetAppointmentByIdQuery, Appointment?>>(provider => new DapperAppointmentQueryHandler(appointmentDb, provider.GetRequiredService<EHR.SharedKernel.Authorization.ITenantAuthorizationService>()));
     builder.Services.AddHostedService(provider => new AppointmentOutboxPublisherWorker(
         appointmentDb,
         provider.GetRequiredService<IEventBus>(),
+        provider.GetRequiredService<IOutboxPublisherSignal>(),
         provider.GetRequiredService<ILogger<AppointmentOutboxPublisherWorker>>()));
 }
 builder.Services.AddScoped<ICommandHandler<BookAppointmentCommand, Result<Appointment>>, BookAppointmentHandler>();
 builder.Services.AddScoped<ICommandHandler<CheckInPatientCommand, Result<Appointment>>, CheckInPatientHandler>();
-builder.Services.AddScoped<IQueryHandler<GetAppointmentByIdQuery, Appointment?>, GetAppointmentByIdHandler>();
 builder.Services.AddSingleton<IIntegrationEventHandler, PatientRegisteredIntegrationEventHandler>();
 
 var app = builder.Build();

@@ -10,11 +10,13 @@ public sealed class CheckInPatientHandler : ICommandHandler<CheckInPatientComman
 {
     private readonly IAppointmentRepository _repository;
     private readonly ITenantAuthorizationService _tenantAuthorization;
+    private readonly ICurrentUserContext _currentUser;
 
-    public CheckInPatientHandler(IAppointmentRepository repository, ITenantAuthorizationService tenantAuthorization)
+    public CheckInPatientHandler(IAppointmentRepository repository, ITenantAuthorizationService tenantAuthorization, ICurrentUserContext currentUser)
     {
         _repository = repository;
         _tenantAuthorization = tenantAuthorization;
+        _currentUser = currentUser;
     }
 
     public async Task<Result<Appointment>> HandleAsync(CheckInPatientCommand command, CancellationToken cancellationToken)
@@ -28,7 +30,7 @@ public sealed class CheckInPatientHandler : ICommandHandler<CheckInPatientComman
         _tenantAuthorization.EnsureCanAccessTenant(appointment.TenantId);
 
         appointment.CheckIn();
-        var integrationEvent = new PatientCheckedInEvent(Guid.NewGuid(), appointment.TenantId, appointment.Id, appointment.PatientId, Guid.NewGuid().ToString("N"));
+        var integrationEvent = new PatientCheckedInEvent(Guid.NewGuid(), appointment.TenantId, appointment.Id, appointment.PatientId, _currentUser.CorrelationId);
         await _repository.SaveAsync(appointment, integrationEvent, cancellationToken);
         return Result<Appointment>.Success(appointment);
     }
