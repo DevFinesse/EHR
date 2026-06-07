@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
 using System.Linq.Expressions;
+using FluentValidation;
+using FluentValidation.Results;
 
 namespace EHR.Cqrs;
 
@@ -37,13 +39,15 @@ public sealed class CqrsDispatcher : ICqrsDispatcher
         _serviceProvider = serviceProvider;
     }
 
-    public Task<TResponse> SendAsync<TResponse>(ICommand<TResponse> command, CancellationToken cancellationToken)
+    public async Task<TResponse> SendAsync<TResponse>(ICommand<TResponse> command, CancellationToken cancellationToken)
     {
+        await ValidateCommandAsync(command, cancellationToken);
+
         var handlerType = typeof(ICommandHandler<,>).MakeGenericType(command.GetType(), typeof(TResponse));
         var handler = _serviceProvider.GetService(handlerType)
             ?? throw new InvalidOperationException($"No command handler registered for {command.GetType().Name}.");
 
-        return InvokeHandlerAsync<TResponse>(handler, command, cancellationToken);
+        return await InvokeHandlerAsync<TResponse>(handler, command, cancellationToken);
     }
 
     public Task<TResponse> QueryAsync<TResponse>(IQuery<TResponse> query, CancellationToken cancellationToken)
@@ -63,6 +67,37 @@ public sealed class CqrsDispatcher : ICqrsDispatcher
             static cacheKey => CreateInvoker<TResponse>(cacheKey.HandlerType, cacheKey.MessageType));
 
         return invoker(handler, message, cancellationToken);
+    }
+
+    private async Task ValidateCommandAsync<TResponse>(ICommand<TResponse> command, CancellationToken cancellationToken)
+    {
+        var validatorType = typeof(IValidator<>).MakeGenericType(command.GetType());
+        var validatorsType = typeof(IEnumerable<>).MakeGenericType(validatorType);
+        if (_serviceProvider.GetService(validatorsType) is not IEnumerable<object> validators)
+        {
+            return;
+        }
+
+        List<ValidationFailure>? failures = null;
+        var contextType = typeof(ValidationContext<>).MakeGenericType(command.GetType());
+        var context = (IValidationContext)Activator.CreateInstance(contextType, command)!;
+
+        foreach (var validator in validators)
+        {
+            var result = await ((IValidator)validator).ValidateAsync(context, cancellationToken);
+            if (result.IsValid)
+            {
+                continue;
+            }
+
+            failures ??= [];
+            failures.AddRange(result.Errors);
+        }
+
+        if (failures is { Count: > 0 })
+        {
+            throw new ValidationException(failures);
+        }
     }
 
     private static Func<object, object, CancellationToken, Task<TResponse>> CreateInvoker<TResponse>(Type handlerType, Type messageType)

@@ -17,6 +17,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\BuildingBlocks\EHR.Messaging\EHR.Messaging.csproj" />
+    <ProjectReference Include="..\..\src\BuildingBlocks\EHR.SharedKernel\EHR.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\src\Services\PatientService\EHR.PatientService.Infrastructure\EHR.PatientService.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Services\TenantService\EHR.TenantService.Application\EHR.TenantService.Application.csproj" />
+    <ProjectReference Include="..\..\src\Services\TenantService\EHR.TenantService.Infrastructure\EHR.TenantService.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 

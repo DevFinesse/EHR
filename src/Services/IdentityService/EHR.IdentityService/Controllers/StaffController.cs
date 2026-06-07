@@ -12,10 +12,12 @@ namespace EHR.IdentityService.Controllers;
 public sealed class StaffController : ControllerBase
 {
     private readonly ICqrsDispatcher _cqrs;
+    private readonly IWebHostEnvironment _environment;
 
-    public StaffController(ICqrsDispatcher cqrs)
+    public StaffController(ICqrsDispatcher cqrs, IWebHostEnvironment environment)
     {
         _cqrs = cqrs;
+        _environment = environment;
     }
 
     [HttpPost("invitations")]
@@ -23,7 +25,17 @@ public sealed class StaffController : ControllerBase
     public async Task<IActionResult> Invite(InviteStaffCommand command, CancellationToken cancellationToken)
     {
         var result = await _cqrs.SendAsync(command, cancellationToken);
-        return result.IsSuccess ? Created($"/api/staff/invitations/{result.Value!.InvitationToken}", result.Value) : BadRequest(new { error = result.Error });
+        if (!result.IsSuccess)
+        {
+            return BadRequest(new { error = result.Error });
+        }
+
+        if (!_environment.IsDevelopment())
+        {
+            return Accepted(new { message = "Staff invitation email has been queued." });
+        }
+
+        return Created($"/api/staff/invitations/{result.Value!.InvitationToken}", result.Value);
     }
 
     [HttpPost]

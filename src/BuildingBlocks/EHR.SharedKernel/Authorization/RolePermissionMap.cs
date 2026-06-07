@@ -8,6 +8,7 @@ public static class RolePermissionMap
             [PlatformRoles.SuperAdmin] = PlatformPermissions.All.ToArray(),
             [PlatformRoles.HospitalAdmin] =
             [
+                PlatformPermissions.TenantRead,
                 PlatformPermissions.TenantManage,
                 PlatformPermissions.StaffRead,
                 PlatformPermissions.StaffManage,
@@ -74,6 +75,7 @@ public static class RolePermissionMap
             ],
             [PlatformRoles.Auditor] =
             [
+                PlatformPermissions.TenantRead,
                 PlatformPermissions.AuditRead
             ]
         };

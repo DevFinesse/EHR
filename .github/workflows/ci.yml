@@ -46,24 +46,49 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      - name: Restore tests
+        run: dotnet restore tests/EHR.Infrastructure.Tests/EHR.Infrastructure.Tests.csproj
+
       - name: Start Compose stack
         run: docker compose up --build -d
 
-      - name: Wait for gateway
+      - name: Wait for service health
         shell: bash
         run: |
-          for i in {1..90}; do
-            if curl -fsS http://localhost:5190/health >/dev/null; then
+          endpoints=(
+            "api-gateway:http://localhost:5190/health"
+            "tenant-service:http://localhost:5191/health"
+            "identity-service:http://localhost:5192/health"
+            "patient-service:http://localhost:5193/health"
+            "appointment-service:http://localhost:5194/health"
+            "encounter-service:http://localhost:5195/health"
+            "audit-service:http://localhost:5196/health"
+          )
+
+          for i in {1..120}; do
+            missing=()
+            for endpoint in "${endpoints[@]}"; do
+              name="${endpoint%%:*}"
+              url="${endpoint#*:}"
+              if ! curl -fsS "$url" >/dev/null; then
+                missing+=("$name")
+              fi
+            done
+
+            if [ "${#missing[@]}" -eq 0 ]; then
               exit 0
             fi
+
+            echo "Waiting for healthy services: ${missing[*]}"
             sleep 2
           done
+
           docker compose ps
           docker compose logs
           exit 1
 
       - name: Run infrastructure and gateway tests
-        run: dotnet test tests/EHR.Infrastructure.Tests/EHR.Infrastructure.Tests.csproj
+        run: dotnet test tests/EHR.Infrastructure.Tests/EHR.Infrastructure.Tests.csproj --no-restore
 
       - name: Stop Compose stack
         if: always()

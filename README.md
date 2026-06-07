@@ -4,7 +4,7 @@ Cloud-native Electronic Health Record platform MVP for hospitals, clinics, and t
 
 ## Architecture
 
-The platform is now split into independently deployable service hosts. The original `src/EHR.Api` project is retained as the first modular MVP/reference host, but the microservice path lives under `src/Services`.
+The platform is split into independently deployable service hosts under `src/Services`, with `src/ApiGateway` providing client-facing routing and `src/AppHost` providing local Aspire orchestration.
 
 ## Services
 
@@ -78,7 +78,6 @@ Service endpoints do not call application logic directly. They send commands and
 
 ## Projects
 
-- `src/EHR.Api` - original modular MVP/reference host.
 - `src/AppHost/EHR.AppHost` - .NET Aspire AppHost for local orchestration.
 - `src/ApiGateway/EHR.ApiGateway` - YARP API Gateway for client-facing routing.
 - `src/Services/*` - real service hosts.
@@ -89,7 +88,7 @@ Service endpoints do not call application logic directly. They send commands and
 - `src/BuildingBlocks/EHR.SharedKernel` - shared primitives such as entities, results, and tenant context.
 - `src/BuildingBlocks/EHR.Messaging` - integration-event contracts, in-memory publishing, Kafka publishing, and Kafka consumer dispatch.
 - `src/BuildingBlocks/EHR.ServiceDefaults` - Serilog, OpenTelemetry, JWT, role policies, health checks, Scalar, and infrastructure config loading.
-- `tests/EHR.Api.Tests` - behavior tests for the first clinical workflow.
+- `tests/EHR.Infrastructure.Tests` - infrastructure, messaging, outbox, and opt-in gateway workflow tests.
 
 ## Infrastructure
 
@@ -302,16 +301,6 @@ $env:RUN_E2E_TESTS = "true"
 $env:GATEWAY_BASE_URL = "http://localhost:5190"
 dotnet test tests/EHR.Infrastructure.Tests
 ```
-
-For the original reference host, send tenant-scoped requests with:
-
-- `X-Tenant-Id`
-- `X-Branch-Id`
-- `X-User-Id`
-- `X-Role`
-- `X-Correlation-Id`
-
-The hospital registration endpoint creates the initial tenant ID. Use that value in later workflow calls.
 
 ## Next Infrastructure Steps
 

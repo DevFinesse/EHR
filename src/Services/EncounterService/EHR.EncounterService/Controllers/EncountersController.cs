@@ -57,4 +57,17 @@ public sealed class EncountersController : ControllerBase
         var encounter = await _cqrs.QueryAsync(new GetEncounterByIdQuery(id), cancellationToken);
         return encounter is null ? NotFound() : Ok(encounter);
     }
+
+    [HttpGet]
+    [Authorize(Policy = PlatformPermissions.EncountersRead)]
+    public async Task<IActionResult> List(
+        [FromQuery] string? tenantId,
+        [FromQuery] Guid? patientId,
+        [FromQuery] string? status,
+        [FromQuery] int limit = 50,
+        CancellationToken cancellationToken = default)
+    {
+        var encounters = await _cqrs.QueryAsync(new ListEncountersQuery(tenantId, patientId, status, limit), cancellationToken);
+        return Ok(encounters);
+    }
 }

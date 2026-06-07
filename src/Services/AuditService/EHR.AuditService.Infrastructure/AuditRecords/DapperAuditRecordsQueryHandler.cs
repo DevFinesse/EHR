@@ -34,11 +34,24 @@ public sealed class DapperAuditRecordsQueryHandler : IQueryHandler<ListAuditReco
                    user_id as UserId
             from audit_records
             where (@TenantId is null or tenant_id = @TenantId)
+              and (@Action is null or action = @Action)
+              and (@UserId is null or user_id = @UserId)
+              and (@From is null or timestamp >= @From)
+              and (@To is null or timestamp <= @To)
             order by timestamp desc
+            limit @Limit
             """;
 
         await using var connection = new NpgsqlConnection(_connectionString);
-        var rows = await connection.QueryAsync<AuditRecordReadRow>(new CommandDefinition(sql, new { TenantId = tenantId }, cancellationToken: cancellationToken));
+        var rows = await connection.QueryAsync<AuditRecordReadRow>(new CommandDefinition(sql, new
+        {
+            TenantId = tenantId,
+            Action = string.IsNullOrWhiteSpace(query.Action) ? null : query.Action.Trim(),
+            UserId = string.IsNullOrWhiteSpace(query.UserId) ? null : query.UserId.Trim(),
+            query.From,
+            query.To,
+            Limit = Clamp(query.Limit, 1, 500)
+        }, cancellationToken: cancellationToken));
         return rows.Select(row => AuditRecord.Restore(row.Id, row.TenantId, row.Action, row.ResourceType, row.ResourceId, row.Severity, row.CorrelationId, row.UserId)).ToArray();
     }
 
@@ -61,6 +74,8 @@ public sealed class DapperAuditRecordsQueryHandler : IQueryHandler<ListAuditReco
 
         return _currentUser.TenantId;
     }
+
+    private static int Clamp(int value, int min, int max) => Math.Min(Math.Max(value, min), max);
 
     private sealed record AuditRecordReadRow(Guid Id, string TenantId, string Action, string ResourceType, string ResourceId, string Severity, string CorrelationId, string? UserId);
 }

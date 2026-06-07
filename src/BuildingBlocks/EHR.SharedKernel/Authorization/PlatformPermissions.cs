@@ -2,6 +2,7 @@ namespace EHR.SharedKernel.Authorization;
 
 public static class PlatformPermissions
 {
+    public const string TenantRead = "tenants.read";
     public const string TenantManage = "tenants.manage";
     public const string StaffRead = "staff.read";
     public const string StaffManage = "staff.manage";
@@ -20,6 +21,7 @@ public static class PlatformPermissions
 
     private static readonly string[] Values =
     [
+        TenantRead,
         TenantManage,
         StaffRead,
         StaffManage,

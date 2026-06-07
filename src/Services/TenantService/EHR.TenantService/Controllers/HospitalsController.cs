@@ -26,6 +26,7 @@ public sealed class HospitalsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [Authorize(Policy = PlatformPermissions.TenantRead)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var hospital = await _cqrs.QueryAsync(new GetHospitalByIdQuery(id), cancellationToken);

@@ -1,5 +1,6 @@
 using EHR.IdentityService.Application.Staff;
 using EHR.SharedKernel.Authorization;
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,11 +12,22 @@ public sealed class StaffMetadataController : ControllerBase
 {
     private readonly IStaffMetadataRepository _staffMetadata;
     private readonly ICurrentUserContext _currentUser;
+    private readonly IValidator<StaffMetadataItemRequest> _itemValidator;
+    private readonly IValidator<StaffMetadataDescriptionRequest> _descriptionValidator;
+    private readonly IValidator<StaffRolePermissionRequest> _rolePermissionValidator;
 
-    public StaffMetadataController(IStaffMetadataRepository staffMetadata, ICurrentUserContext currentUser)
+    public StaffMetadataController(
+        IStaffMetadataRepository staffMetadata,
+        ICurrentUserContext currentUser,
+        IValidator<StaffMetadataItemRequest> itemValidator,
+        IValidator<StaffMetadataDescriptionRequest> descriptionValidator,
+        IValidator<StaffRolePermissionRequest> rolePermissionValidator)
     {
         _staffMetadata = staffMetadata;
         _currentUser = currentUser;
+        _itemValidator = itemValidator;
+        _descriptionValidator = descriptionValidator;
+        _rolePermissionValidator = rolePermissionValidator;
     }
 
     [HttpGet("roles")]
@@ -26,6 +38,7 @@ public sealed class StaffMetadataController : ControllerBase
     [Authorize(Policy = PlatformPermissions.StaffMetadataManage)]
     public async Task<IActionResult> CreateRole(StaffMetadataItemRequest request, [FromQuery] bool global = false, CancellationToken cancellationToken = default)
     {
+        await _itemValidator.ValidateAndThrowAsync(request, cancellationToken);
         var result = await _staffMetadata.CreateRoleAsync(ResolveScope(global), request.Name, request.Description, cancellationToken);
         return result.IsSuccess ? Created($"/api/staff-metadata/roles/{Uri.EscapeDataString(request.Name.Trim())}", null) : ToError(result);
     }
@@ -34,6 +47,8 @@ public sealed class StaffMetadataController : ControllerBase
     [Authorize(Policy = PlatformPermissions.StaffMetadataManage)]
     public async Task<IActionResult> UpdateRole(string name, StaffMetadataDescriptionRequest request, [FromQuery] bool global = false, CancellationToken cancellationToken = default)
     {
+        ValidateRouteName(name, "Role name");
+        await _descriptionValidator.ValidateAndThrowAsync(request, cancellationToken);
         var result = await _staffMetadata.UpdateRoleAsync(ResolveScope(global), name, request.Description, cancellationToken);
         return result.IsSuccess ? NoContent() : ToError(result);
     }
@@ -42,6 +57,7 @@ public sealed class StaffMetadataController : ControllerBase
     [Authorize(Policy = PlatformPermissions.StaffMetadataManage)]
     public async Task<IActionResult> DeleteRole(string name, [FromQuery] bool forceSystem = false, [FromQuery] bool global = false, CancellationToken cancellationToken = default)
     {
+        ValidateRouteName(name, "Role name");
         var result = await _staffMetadata.DeleteRoleAsync(ResolveScope(global), name, forceSystem, cancellationToken);
         return result.IsSuccess ? NoContent() : ToError(result);
     }
@@ -54,6 +70,7 @@ public sealed class StaffMetadataController : ControllerBase
     [Authorize(Policy = PlatformPermissions.StaffMetadataManage)]
     public async Task<IActionResult> CreateDepartment(StaffMetadataItemRequest request, [FromQuery] bool global = false, CancellationToken cancellationToken = default)
     {
+        await _itemValidator.ValidateAndThrowAsync(request, cancellationToken);
         var result = await _staffMetadata.CreateDepartmentAsync(ResolveScope(global), request.Name, request.Description, cancellationToken);
         return result.IsSuccess ? Created($"/api/staff-metadata/departments/{Uri.EscapeDataString(request.Name.Trim())}", null) : ToError(result);
     }
@@ -62,6 +79,8 @@ public sealed class StaffMetadataController : ControllerBase
     [Authorize(Policy = PlatformPermissions.StaffMetadataManage)]
     public async Task<IActionResult> UpdateDepartment(string name, StaffMetadataDescriptionRequest request, [FromQuery] bool global = false, CancellationToken cancellationToken = default)
     {
+        ValidateRouteName(name, "Department name");
+        await _descriptionValidator.ValidateAndThrowAsync(request, cancellationToken);
         var result = await _staffMetadata.UpdateDepartmentAsync(ResolveScope(global), name, request.Description, cancellationToken);
         return result.IsSuccess ? NoContent() : ToError(result);
     }
@@ -70,6 +89,7 @@ public sealed class StaffMetadataController : ControllerBase
     [Authorize(Policy = PlatformPermissions.StaffMetadataManage)]
     public async Task<IActionResult> DeleteDepartment(string name, [FromQuery] bool forceSystem = false, [FromQuery] bool global = false, CancellationToken cancellationToken = default)
     {
+        ValidateRouteName(name, "Department name");
         var result = await _staffMetadata.DeleteDepartmentAsync(ResolveScope(global), name, forceSystem, cancellationToken);
         return result.IsSuccess ? NoContent() : ToError(result);
     }
@@ -82,6 +102,7 @@ public sealed class StaffMetadataController : ControllerBase
     [Authorize(Policy = PlatformPermissions.StaffMetadataManage)]
     public async Task<IActionResult> CreatePermission(StaffMetadataItemRequest request, CancellationToken cancellationToken)
     {
+        await _itemValidator.ValidateAndThrowAsync(request, cancellationToken);
         var result = await _staffMetadata.CreatePermissionAsync(request.Name, request.Description, cancellationToken);
         return result.IsSuccess ? Created($"/api/staff-metadata/permissions/{Uri.EscapeDataString(request.Name.Trim())}", null) : ToError(result);
     }
@@ -90,6 +111,8 @@ public sealed class StaffMetadataController : ControllerBase
     [Authorize(Policy = PlatformPermissions.StaffMetadataManage)]
     public async Task<IActionResult> UpdatePermission(string name, StaffMetadataDescriptionRequest request, CancellationToken cancellationToken)
     {
+        ValidateRouteName(name, "Permission name");
+        await _descriptionValidator.ValidateAndThrowAsync(request, cancellationToken);
         var result = await _staffMetadata.UpdatePermissionAsync(name, request.Description, cancellationToken);
         return result.IsSuccess ? NoContent() : ToError(result);
     }
@@ -98,6 +121,7 @@ public sealed class StaffMetadataController : ControllerBase
     [Authorize(Policy = PlatformPermissions.StaffMetadataManage)]
     public async Task<IActionResult> DeletePermission(string name, [FromQuery] bool forceSystem = false, CancellationToken cancellationToken = default)
     {
+        ValidateRouteName(name, "Permission name");
         var result = await _staffMetadata.DeletePermissionAsync(name, forceSystem, cancellationToken);
         return result.IsSuccess ? NoContent() : ToError(result);
     }
@@ -110,6 +134,7 @@ public sealed class StaffMetadataController : ControllerBase
     [Authorize(Policy = PlatformPermissions.StaffMetadataManage)]
     public async Task<IActionResult> GrantRolePermission(StaffRolePermissionRequest request, [FromQuery] bool global = false, CancellationToken cancellationToken = default)
     {
+        await _rolePermissionValidator.ValidateAndThrowAsync(request, cancellationToken);
         var result = await _staffMetadata.GrantPermissionAsync(ResolveScope(global), request.RoleName, request.PermissionName, cancellationToken);
         return result.IsSuccess ? Created("/api/staff-metadata/role-permissions", null) : ToError(result);
     }
@@ -118,8 +143,22 @@ public sealed class StaffMetadataController : ControllerBase
     [Authorize(Policy = PlatformPermissions.StaffMetadataManage)]
     public async Task<IActionResult> RevokeRolePermission([FromQuery] string roleName, [FromQuery] string permissionName, [FromQuery] bool global = false, CancellationToken cancellationToken = default)
     {
+        await _rolePermissionValidator.ValidateAndThrowAsync(new StaffRolePermissionRequest(roleName, permissionName), cancellationToken);
         var result = await _staffMetadata.RevokePermissionAsync(ResolveScope(global), roleName, permissionName, cancellationToken);
         return result.IsSuccess ? NoContent() : ToError(result);
+    }
+
+    private static void ValidateRouteName(string name, string fieldName)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ValidationException($"{fieldName} is required.");
+        }
+
+        if (name.Length > 120)
+        {
+            throw new ValidationException($"{fieldName} must be 120 characters or fewer.");
+        }
     }
 
     private IActionResult ToError(StaffMetadataMutationResult result)
@@ -166,3 +205,29 @@ public sealed record StaffMetadataItemRequest(string Name, string? Description);
 public sealed record StaffMetadataDescriptionRequest(string? Description);
 
 public sealed record StaffRolePermissionRequest(string RoleName, string PermissionName);
+
+public sealed class StaffMetadataItemRequestValidator : AbstractValidator<StaffMetadataItemRequest>
+{
+    public StaffMetadataItemRequestValidator()
+    {
+        RuleFor(request => request.Name).NotEmpty().MaximumLength(120);
+        RuleFor(request => request.Description).MaximumLength(500);
+    }
+}
+
+public sealed class StaffMetadataDescriptionRequestValidator : AbstractValidator<StaffMetadataDescriptionRequest>
+{
+    public StaffMetadataDescriptionRequestValidator()
+    {
+        RuleFor(request => request.Description).MaximumLength(500);
+    }
+}
+
+public sealed class StaffRolePermissionRequestValidator : AbstractValidator<StaffRolePermissionRequest>
+{
+    public StaffRolePermissionRequestValidator()
+    {
+        RuleFor(request => request.RoleName).NotEmpty().MaximumLength(120);
+        RuleFor(request => request.PermissionName).NotEmpty().MaximumLength(120);
+    }
+}

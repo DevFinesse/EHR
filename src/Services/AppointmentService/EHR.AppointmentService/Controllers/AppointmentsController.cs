@@ -40,4 +40,19 @@ public sealed class AppointmentsController : ControllerBase
         var appointment = await _cqrs.QueryAsync(new GetAppointmentByIdQuery(id), cancellationToken);
         return appointment is null ? NotFound() : Ok(appointment);
     }
+
+    [HttpGet]
+    [Authorize(Policy = PlatformPermissions.AppointmentsRead)]
+    public async Task<IActionResult> List(
+        [FromQuery] string? tenantId,
+        [FromQuery] DateTimeOffset? from,
+        [FromQuery] DateTimeOffset? to,
+        [FromQuery] Guid? practitionerId,
+        [FromQuery] string? status,
+        [FromQuery] int limit = 50,
+        CancellationToken cancellationToken = default)
+    {
+        var appointments = await _cqrs.QueryAsync(new ListAppointmentsQuery(tenantId, from, to, practitionerId, status, limit), cancellationToken);
+        return Ok(appointments);
+    }
 }

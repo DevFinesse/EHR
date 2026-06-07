@@ -4,6 +4,7 @@ using EHR.ServiceDefaults;
 using EHR.TenantService.Application.Hospitals;
 using EHR.TenantService.Domain.Hospitals;
 using EHR.TenantService.Infrastructure.Hospitals;
+using FluentValidation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +13,7 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddEhrMessaging(builder.Configuration);
 builder.Services.AddScoped<ICqrsDispatcher, CqrsDispatcher>();
+builder.Services.AddValidatorsFromAssemblyContaining<RegisterHospitalCommand>();
 var tenantDb = builder.Configuration.GetConnectionString("TenantDb");
 if (string.IsNullOrWhiteSpace(tenantDb))
 {

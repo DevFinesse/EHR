@@ -69,6 +69,7 @@ public sealed class EhrExceptionHandler : IExceptionHandler
 
         return exceptionTypeName switch
         {
+            "ValidationException" => StatusCodes.Status400BadRequest,
             "TenantNotFoundException" => StatusCodes.Status404NotFound,
             "DuplicateStaffUserEmailException" => StatusCodes.Status409Conflict,
             "DbUpdateConcurrencyException" => StatusCodes.Status409Conflict,

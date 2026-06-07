@@ -1,7 +1,4 @@
 <Solution>
-  <Folder Name="/src/">
-    <Project Path="src/EHR.Api/EHR.Api.csproj" />
-  </Folder>
   <Folder Name="/src/ApiGateway/">
     <Project Path="src/ApiGateway/EHR.ApiGateway/EHR.ApiGateway.csproj" />
   </Folder>
@@ -52,7 +49,6 @@
     <Project Path="src/Services/TenantService/EHR.TenantService/EHR.TenantService.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/EHR.Api.Tests/EHR.Api.Tests.csproj" />
     <Project Path="tests/EHR.Infrastructure.Tests/EHR.Infrastructure.Tests.csproj" />
   </Folder>
 </Solution>

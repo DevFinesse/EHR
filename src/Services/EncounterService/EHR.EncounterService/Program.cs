@@ -5,6 +5,7 @@ using EHR.EncounterService.Infrastructure.Encounters;
 using EHR.Messaging;
 using EHR.ServiceDefaults;
 using EHR.SharedKernel;
+using FluentValidation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,7 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddEhrMessaging(builder.Configuration);
 builder.Services.AddScoped<ICqrsDispatcher, CqrsDispatcher>();
+builder.Services.AddValidatorsFromAssemblyContaining<StartEncounterCommand>();
 var encounterDb = builder.Configuration.GetConnectionString("EncounterDb");
 if (string.IsNullOrWhiteSpace(encounterDb))
 {
@@ -26,6 +28,10 @@ else
         encounterDb,
         provider.GetRequiredService<IOutboxPublisherSignal>()));
     builder.Services.AddScoped<IQueryHandler<GetEncounterByIdQuery, Encounter?>>(provider => new DapperEncounterQueryHandler(encounterDb, provider.GetRequiredService<EHR.SharedKernel.Authorization.ITenantAuthorizationService>()));
+    builder.Services.AddScoped<IQueryHandler<ListEncountersQuery, IReadOnlyCollection<Encounter>>>(provider => new DapperListEncountersQueryHandler(
+        encounterDb,
+        provider.GetRequiredService<EHR.SharedKernel.Authorization.ICurrentUserContext>(),
+        provider.GetRequiredService<EHR.SharedKernel.Authorization.ITenantAuthorizationService>()));
     builder.Services.AddHostedService(provider => new EncounterOutboxPublisherWorker(
         encounterDb,
         provider.GetRequiredService<IEventBus>(),

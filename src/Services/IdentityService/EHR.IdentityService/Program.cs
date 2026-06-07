@@ -1,6 +1,7 @@
 using EHR.Cqrs;
 using EHR.IdentityService.Application.Auth;
 using EHR.IdentityService.Application.Staff;
+using EHR.IdentityService.Controllers;
 using EHR.IdentityService.Domain.Staff;
 using EHR.IdentityService.Infrastructure.Auth;
 using EHR.IdentityService.Infrastructure.Staff;
@@ -9,6 +10,7 @@ using EHR.IdentityService.Infrastructure.Tenants;
 using EHR.Messaging;
 using EHR.ServiceDefaults;
 using EHR.SharedKernel;
+using FluentValidation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +19,8 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddEhrMessaging(builder.Configuration);
 builder.Services.AddScoped<ICqrsDispatcher, CqrsDispatcher>();
+builder.Services.AddValidatorsFromAssemblyContaining<LoginCommand>();
+builder.Services.AddValidatorsFromAssemblyContaining<StaffMetadataItemRequestValidator>();
 var identityDb = builder.Configuration.GetConnectionString("IdentityDb");
 if (string.IsNullOrWhiteSpace(identityDb))
 {
@@ -33,6 +37,7 @@ else
     await ServiceDefaults.RunWithStartupRetryAsync(() => IdentityDatabaseMigrator.MigrateAsync(identityDb), "Identity database migration");
     await ServiceDefaults.RunWithStartupRetryAsync(() => IdentityStaffMetadataSeeder.SeedAsync(identityDb), "Identity staff metadata seed");
     await ServiceDefaults.RunWithStartupRetryAsync(() => IdentityDevelopmentSeeder.SeedAsync(identityDb, new Pbkdf2PasswordHasher(), builder.Configuration, builder.Environment), "Identity development admin seed");
+    builder.Services.AddSingleton<IInboxStore>(_ => new PostgresInboxStore(identityDb));
     builder.Services.AddSingleton<IStaffUserRepository>(provider => new PostgresStaffUserRepository(
         identityDb,
         provider.GetRequiredService<IOutboxPublisherSignal>()));

@@ -11,10 +11,12 @@ namespace EHR.IdentityService.Controllers;
 public sealed class AuthController : ControllerBase
 {
     private readonly ICqrsDispatcher _cqrs;
+    private readonly IWebHostEnvironment _environment;
 
-    public AuthController(ICqrsDispatcher cqrs)
+    public AuthController(ICqrsDispatcher cqrs, IWebHostEnvironment environment)
     {
         _cqrs = cqrs;
+        _environment = environment;
     }
 
     [HttpPost("login")]
@@ -58,6 +60,11 @@ public sealed class AuthController : ControllerBase
     public async Task<IActionResult> RequestPasswordReset(ResetPasswordRequestCommand command, CancellationToken cancellationToken)
     {
         var result = await _cqrs.SendAsync(command, cancellationToken);
+        if (!_environment.IsDevelopment())
+        {
+            return Ok(new { message = "If an account exists for this email, password reset instructions have been sent." });
+        }
+
         return result.IsSuccess ? Ok(result.Value) : NotFound(new { error = result.Error });
     }
 

@@ -52,7 +52,8 @@ public static class ServiceDefaults
                 .WriteTo.Console();
         });
 
-        builder.Services.AddHealthChecks();
+        var healthChecks = builder.Services.AddHealthChecks();
+        AddInfrastructureHealthChecks(builder, healthChecks);
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddScoped<ICurrentUserContext, HttpCurrentUserContextAccessor>();
         builder.Services.AddScoped<ITenantAuthorizationService, TenantAuthorizationService>();
@@ -168,6 +169,39 @@ public static class ServiceDefaults
         }
 
         return builder;
+    }
+
+    private static void AddInfrastructureHealthChecks(WebApplicationBuilder builder, IHealthChecksBuilder healthChecks)
+    {
+        foreach (var connectionString in builder.Configuration.GetSection("ConnectionStrings").GetChildren())
+        {
+            if (!string.IsNullOrWhiteSpace(connectionString.Value))
+            {
+                healthChecks.AddCheck(
+                    $"postgres:{connectionString.Key}",
+                    new PostgresHealthCheck(connectionString.Value),
+                    tags: ["ready", "postgres"]);
+            }
+        }
+
+        var kafkaBootstrapServers = builder.Configuration["Kafka:BootstrapServers"];
+        if (!string.IsNullOrWhiteSpace(kafkaBootstrapServers))
+        {
+            healthChecks.AddCheck(
+                "kafka",
+                new KafkaHealthCheck(kafkaBootstrapServers),
+                tags: ["ready", "kafka"]);
+        }
+
+        var smtpHost = builder.Configuration["Email:Smtp:Host"];
+        var smtpPort = builder.Configuration.GetValue<int?>("Email:Smtp:Port");
+        if (!string.IsNullOrWhiteSpace(smtpHost) && smtpPort is > 0)
+        {
+            healthChecks.AddCheck(
+                "smtp",
+                new SmtpHealthCheck(smtpHost, smtpPort.Value),
+                tags: ["ready", "smtp"]);
+        }
     }
 
     private static bool IsTelemetryExporterRequest(Uri? requestUri, string? otlpEndpoint)

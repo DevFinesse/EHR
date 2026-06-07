@@ -47,7 +47,7 @@ public sealed class ListAuditRecordsHandler : IQueryHandler<ListAuditRecordsQuer
     {
         if (_currentUser.IsSuperAdmin)
         {
-            return _repository.ListAsync(query.TenantId?.Trim(), cancellationToken);
+            return ListAndFilterAsync(query, query.TenantId?.Trim(), cancellationToken);
         }
 
         if (string.IsNullOrWhiteSpace(_currentUser.TenantId))
@@ -60,6 +60,34 @@ public sealed class ListAuditRecordsHandler : IQueryHandler<ListAuditRecordsQuer
             _tenantAuthorization.EnsureCanAccessTenant(query.TenantId);
         }
 
-        return _repository.ListAsync(_currentUser.TenantId, cancellationToken);
+        return ListAndFilterAsync(query, _currentUser.TenantId, cancellationToken);
+    }
+
+    private async Task<IReadOnlyCollection<AuditRecord>> ListAndFilterAsync(ListAuditRecordsQuery query, string? tenantId, CancellationToken cancellationToken)
+    {
+        var records = await _repository.ListAsync(tenantId, cancellationToken);
+        var filtered = records.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(query.Action))
+        {
+            filtered = filtered.Where(record => string.Equals(record.Action, query.Action.Trim(), StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.UserId))
+        {
+            filtered = filtered.Where(record => string.Equals(record.UserId, query.UserId.Trim(), StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (query.From is not null)
+        {
+            filtered = filtered.Where(record => record.Timestamp >= query.From.Value);
+        }
+
+        if (query.To is not null)
+        {
+            filtered = filtered.Where(record => record.Timestamp <= query.To.Value);
+        }
+
+        return filtered.Take(Math.Min(Math.Max(query.Limit, 1), 500)).ToArray();
     }
 }

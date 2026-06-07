@@ -21,6 +21,7 @@ if (string.IsNullOrWhiteSpace(auditDb))
 else
 {
     await ServiceDefaults.RunWithStartupRetryAsync(() => AuditDatabaseMigrator.MigrateAsync(auditDb), "Audit database migration");
+    builder.Services.AddSingleton<IInboxStore>(_ => new PostgresInboxStore(auditDb));
     builder.Services.AddSingleton<IAuditRecordRepository>(_ => new PostgresAuditRecordRepository(auditDb));
     builder.Services.AddScoped<IQueryHandler<ListAuditRecordsQuery, IReadOnlyCollection<AuditRecord>>>(provider => new DapperAuditRecordsQueryHandler(
         auditDb,

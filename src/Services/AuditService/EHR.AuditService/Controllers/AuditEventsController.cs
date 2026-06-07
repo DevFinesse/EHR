@@ -27,9 +27,16 @@ public sealed class AuditEventsController : ControllerBase
 
     [HttpGet]
     [Authorize(Policy = PlatformPermissions.AuditRead)]
-    public async Task<IActionResult> List([FromQuery] string? tenantId, CancellationToken cancellationToken)
+    public async Task<IActionResult> List(
+        [FromQuery] string? tenantId,
+        [FromQuery] string? action,
+        [FromQuery] string? userId,
+        [FromQuery] DateTimeOffset? from,
+        [FromQuery] DateTimeOffset? to,
+        [FromQuery] int limit = 100,
+        CancellationToken cancellationToken = default)
     {
-        var records = await _cqrs.QueryAsync(new ListAuditRecordsQuery(tenantId), cancellationToken);
+        var records = await _cqrs.QueryAsync(new ListAuditRecordsQuery(tenantId, action, userId, from, to, limit), cancellationToken);
         return Ok(records);
     }
 }

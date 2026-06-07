@@ -32,4 +32,18 @@ public sealed class PatientsController : ControllerBase
         var patient = await _cqrs.QueryAsync(new GetPatientByIdQuery(id), cancellationToken);
         return patient is null ? NotFound() : Ok(patient);
     }
+
+    [HttpGet]
+    [Authorize(Policy = PlatformPermissions.PatientsRead)]
+    public async Task<IActionResult> Search(
+        [FromQuery] string? tenantId,
+        [FromQuery] string? medicalRecordNumber,
+        [FromQuery] string? name,
+        [FromQuery] string? phoneNumber,
+        [FromQuery] int limit = 50,
+        CancellationToken cancellationToken = default)
+    {
+        var patients = await _cqrs.QueryAsync(new SearchPatientsQuery(tenantId, medicalRecordNumber, name, phoneNumber, limit), cancellationToken);
+        return Ok(patients);
+    }
 }
