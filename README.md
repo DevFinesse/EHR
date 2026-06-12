@@ -14,6 +14,9 @@ The platform is split into independently deployable service hosts under `src/Ser
 - `src/Services/AppointmentService/EHR.AppointmentService` - appointment booking, queue/check-in workflow.
 - `src/Services/EncounterService/EHR.EncounterService` - visits, vitals, diagnosis, encounter completion.
 - `src/Services/AuditService/EHR.AuditService` - audit events and compliance history.
+- `src/Services/AnalyticsService/EHR.AnalyticsService` - OMOP-style analytics projections for population-health read models.
+- `src/Integration/FhirApi/EHR.FhirApi` - FHIR-facing integration facade for external apps and telemedicine clients.
+- `src/Integration/Hl7Api/EHR.Hl7Api` - HL7 v2 integration facade for hospital systems, starting with ADT messages.
 
 Each service has its own ASP.NET Core host and service-owned persistence. EF Core-backed PostgreSQL repositories are used when a service connection string is configured; in-memory repositories remain available for lightweight local runs and unit tests.
 
@@ -81,9 +84,12 @@ Service endpoints do not call application logic directly. They send commands and
 - `src/AppHost/EHR.AppHost` - .NET Aspire AppHost for local orchestration.
 - `src/ApiGateway/EHR.ApiGateway` - YARP API Gateway for client-facing routing.
 - `src/Services/*` - real service hosts.
+- `src/Integration/FhirApi/EHR.FhirApi` - FHIR R4-style API facade over Patient, Practitioner, Appointment, Encounter, Observation, and Condition resources.
+- `src/Integration/Hl7Api/EHR.Hl7Api` - HL7 v2 ADT inbound/outbound message facade.
 - `src/Services/*/*.Domain` - service domain class libraries.
 - `src/Services/*/*.Application` - service application class libraries.
 - `src/Services/*/*.Infrastructure` - service infrastructure class libraries.
+- `src/Services/AnalyticsService/EHR.AnalyticsService` - OMOP-style projection host and analytics API.
 - `src/BuildingBlocks/EHR.Cqrs` - custom CQRS abstractions and dispatcher.
 - `src/BuildingBlocks/EHR.SharedKernel` - shared primitives such as entities, results, and tenant context.
 - `src/BuildingBlocks/EHR.Messaging` - integration-event contracts, in-memory publishing, Kafka publishing, and Kafka consumer dispatch.
@@ -102,6 +108,7 @@ Local infrastructure is defined in `docker-compose.yml`:
 - Appointment PostgreSQL on `localhost:5436`
 - Encounter PostgreSQL on `localhost:5437`
 - Audit PostgreSQL on `localhost:5438`
+- Analytics PostgreSQL on `localhost:5439`
 
 Each service has an `appsettings.Infrastructure.json` file with:
 
@@ -153,6 +160,9 @@ dotnet run --project src/Services/PatientService/EHR.PatientService --urls http:
 dotnet run --project src/Services/AppointmentService/EHR.AppointmentService --urls http://localhost:5194
 dotnet run --project src/Services/EncounterService/EHR.EncounterService --urls http://localhost:5195
 dotnet run --project src/Services/AuditService/EHR.AuditService --urls http://localhost:5196
+dotnet run --project src/Integration/FhirApi/EHR.FhirApi --urls http://localhost:5197
+dotnet run --project src/Integration/Hl7Api/EHR.Hl7Api --urls http://localhost:5198
+dotnet run --project src/Services/AnalyticsService/EHR.AnalyticsService --urls http://localhost:5199
 ```
 
 When running with `appsettings.Infrastructure.json`, start the infrastructure first:
@@ -186,6 +196,9 @@ The AppHost starts the same local platform graph as Compose:
 - Mailpit
 - Jaeger
 - Tenant, Identity, Patient, Appointment, Encounter, Audit services
+- FHIR API facade
+- HL7 v2 API facade
+- Analytics service with OMOP-style projections
 - API Gateway
 
 Example command:
@@ -206,6 +219,39 @@ Gateway route example:
 ```powershell
 Invoke-RestMethod -Uri http://localhost:5190/tenant/api/hospitals -Method Post -Body $body -ContentType application/json
 ```
+
+FHIR route examples:
+
+```powershell
+Invoke-RestMethod -Uri http://localhost:5190/fhir/metadata
+Invoke-RestMethod -Uri http://localhost:5190/fhir/Patient?name=Ada -Headers @{ Authorization = "Bearer $accessToken" }
+Invoke-RestMethod -Uri http://localhost:5190/fhir/Appointment?status=Booked -Headers @{ Authorization = "Bearer $accessToken" }
+Invoke-RestMethod -Uri http://localhost:5190/fhir/Observation?patient=$patientId -Headers @{ Authorization = "Bearer $accessToken" }
+Invoke-RestMethod -Uri http://localhost:5190/fhir/Condition?encounter=$encounterId -Headers @{ Authorization = "Bearer $accessToken" }
+```
+
+HL7 v2 route examples:
+
+```powershell
+Invoke-RestMethod -Uri http://localhost:5190/hl7/api/hl7/adt/capabilities
+
+$hl7 = "MSH|^~\&|HIS|GENERAL|EHR|EHR_PLATFORM|20260607120000||ADT^A04|MSG00001|P|2.5.1`rEVN|A04|20260607120000`rPID|1||MRN-12345^^^GENERAL||Okafor^Ada||19870513|F|||1 Marina Road^^Lagos||+2348000000000`rPV1|1|O|OPD^1||||1234^Okafor^Ada||||||||||||VISIT-123`r"
+
+Invoke-RestMethod -Uri http://localhost:5190/hl7/api/hl7/adt/parse -Method Post -Body $hl7 -ContentType "application/hl7-v2" -Headers @{ Authorization = "Bearer $accessToken" }
+Invoke-RestMethod -Uri http://localhost:5190/hl7/api/hl7/adt/inbound -Method Post -Body $hl7 -ContentType "application/hl7-v2" -Headers @{ Authorization = "Bearer $accessToken" }
+```
+
+OMOP analytics route examples:
+
+```powershell
+Invoke-RestMethod -Uri http://localhost:5190/analytics/api/omop/persons -Headers @{ Authorization = "Bearer $accessToken" }
+Invoke-RestMethod -Uri http://localhost:5190/analytics/api/omop/visit-occurrences?personId=$patientId -Headers @{ Authorization = "Bearer $accessToken" }
+Invoke-RestMethod -Uri http://localhost:5190/analytics/api/omop/condition-occurrences?personId=$patientId -Headers @{ Authorization = "Bearer $accessToken" }
+Invoke-RestMethod -Uri http://localhost:5190/analytics/api/omop/measurements?sourceValue=oxygen_saturation -Headers @{ Authorization = "Bearer $accessToken" }
+Invoke-RestMethod -Uri http://localhost:5190/analytics/api/omop/concept-maps?domain=Measurement -Headers @{ Authorization = "Bearer $accessToken" }
+```
+
+The analytics service includes an `omop_concept_map` table for ICD-10, SNOMED, LOINC, and UCUM mappings. Condition and measurement projections populate OMOP concept ID columns from this table when mappings exist, and fall back to `0` for unmapped source codes. Admins can upsert mappings through `PUT /analytics/api/omop/concept-maps`.
 
 Identity token flow:
 

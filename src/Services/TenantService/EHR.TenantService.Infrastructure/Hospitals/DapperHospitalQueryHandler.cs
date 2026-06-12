@@ -28,5 +28,8 @@ public sealed class DapperHospitalQueryHandler : IQueryHandler<GetHospitalByIdQu
         return row is null ? null : Hospital.Restore(row.Id, row.TenantId, row.Name, row.Country, row.City, row.Plan);
     }
 
-    private sealed record HospitalReadRow(Guid Id, string TenantId, string Name, string Country, string City, string Plan);
+    private sealed record HospitalReadRow(Guid Id, string TenantId, string Name, string Country, string City, string Plan)
+    {
+        public HospitalReadRow() : this(default, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty) { }
+    }
 }

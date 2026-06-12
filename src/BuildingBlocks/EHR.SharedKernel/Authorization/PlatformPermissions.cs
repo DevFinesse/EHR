@@ -11,6 +11,7 @@ public static class PlatformPermissions
     public const string StaffMetadataManage = "staff.metadata.manage";
     public const string PatientsRead = "patients.read";
     public const string PatientsCreate = "patients.create";
+    public const string PatientsUpdate = "patients.update";
     public const string AppointmentsRead = "appointments.read";
     public const string AppointmentsBook = "appointments.book";
     public const string AppointmentsCheckIn = "appointments.check_in";
@@ -18,6 +19,8 @@ public static class PlatformPermissions
     public const string EncountersWrite = "encounters.write";
     public const string AuditRead = "audit.read";
     public const string AuditWrite = "audit.write";
+    public const string AnalyticsRead = "analytics.read";
+    public const string AnalyticsManage = "analytics.manage";
 
     private static readonly string[] Values =
     [
@@ -30,13 +33,16 @@ public static class PlatformPermissions
         StaffMetadataManage,
         PatientsRead,
         PatientsCreate,
+        PatientsUpdate,
         AppointmentsRead,
         AppointmentsBook,
         AppointmentsCheckIn,
         EncountersRead,
         EncountersWrite,
         AuditRead,
-        AuditWrite
+        AuditWrite,
+        AnalyticsRead,
+        AnalyticsManage
     ];
 
     public static IReadOnlyCollection<string> All => Values;

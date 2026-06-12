@@ -22,6 +22,9 @@
     <ProjectReference Include="..\..\Services\AppointmentService\EHR.AppointmentService\EHR.AppointmentService.csproj" IsAspireProjectResource="true" />
     <ProjectReference Include="..\..\Services\EncounterService\EHR.EncounterService\EHR.EncounterService.csproj" IsAspireProjectResource="true" />
     <ProjectReference Include="..\..\Services\AuditService\EHR.AuditService\EHR.AuditService.csproj" IsAspireProjectResource="true" />
+    <ProjectReference Include="..\..\Services\AnalyticsService\EHR.AnalyticsService\EHR.AnalyticsService.csproj" IsAspireProjectResource="true" />
+    <ProjectReference Include="..\..\Integration\FhirApi\EHR.FhirApi\EHR.FhirApi.csproj" IsAspireProjectResource="true" />
+    <ProjectReference Include="..\..\Integration\Hl7Api\EHR.Hl7Api\EHR.Hl7Api.csproj" IsAspireProjectResource="true" />
   </ItemGroup>
 
 </Project>

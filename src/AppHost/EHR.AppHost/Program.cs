@@ -57,6 +57,7 @@ var patientDb = AddPostgres("patient-db", "ehr_patient", 5435);
 var appointmentDb = AddPostgres("appointment-db", "ehr_appointment", 5436);
 var encounterDb = AddPostgres("encounter-db", "ehr_encounter", 5437);
 var auditDb = AddPostgres("audit-db", "ehr_audit", 5438);
+var analyticsDb = AddPostgres("analytics-db", "ehr_analytics", 5439);
 
 var tenantService = builder.AddProject<Projects.EHR_TenantService>("tenant-service")
     .WithHttpEndpoint(port: 5191)
@@ -138,7 +139,47 @@ var auditService = builder.AddProject<Projects.EHR_AuditService>("audit-service"
     .WithEnvironment("Kafka__ConsumerTopics__5", "encounter.started")
     .WithEnvironment("Kafka__ConsumerTopics__6", "vitals.recorded")
     .WithEnvironment("Kafka__ConsumerTopics__7", "diagnosis.added")
-    .WithEnvironment("Kafka__ConsumerTopics__8", "encounter.completed");
+    .WithEnvironment("Kafka__ConsumerTopics__8", "encounter.completed")
+    .WithEnvironment("Kafka__ConsumerTopics__9", "integration.hl7.adt_received")
+    .WithEnvironment("Kafka__ConsumerTopics__10", "integration.hl7.adt_patient_mapped")
+    .WithEnvironment("Kafka__ConsumerTopics__11", "patient.demographics_updated");
+
+var analyticsService = builder.AddProject<Projects.EHR_AnalyticsService>("analytics-service")
+    .WithHttpEndpoint(port: 5199)
+    .WaitFor(kafka)
+    .WaitFor(analyticsDb)
+    .WithEnvironment("Kafka__BootstrapServers", "localhost:9092")
+    .WithEnvironment("Jwt__SigningKey", jwtSigningKey)
+    .WithEnvironment("OpenTelemetry__OtlpEndpoint", "http://localhost:4317")
+    .WithEnvironment("ConnectionStrings__AnalyticsDb", "Host=localhost;Port=5439;Database=ehr_analytics;Username=ehr;Password=ehr_dev_password")
+    .WithEnvironment("Kafka__ConsumerGroupId", "analytics-service")
+    .WithEnvironment("Kafka__ConsumerTopics__0", "patient.created")
+    .WithEnvironment("Kafka__ConsumerTopics__1", "patient.demographics_updated")
+    .WithEnvironment("Kafka__ConsumerTopics__2", "encounter.started")
+    .WithEnvironment("Kafka__ConsumerTopics__3", "vitals.recorded")
+    .WithEnvironment("Kafka__ConsumerTopics__4", "diagnosis.added");
+
+var fhirApi = builder.AddProject<Projects.EHR_FhirApi>("fhir-api")
+    .WithHttpEndpoint(port: 5197)
+    .WaitFor(identityService)
+    .WaitFor(patientService)
+    .WaitFor(appointmentService)
+    .WaitFor(encounterService)
+    .WithEnvironment("Jwt__SigningKey", jwtSigningKey)
+    .WithEnvironment("OpenTelemetry__OtlpEndpoint", "http://localhost:4317")
+    .WithEnvironment("ServiceClients__IdentityBaseUrl", "http://localhost:5192")
+    .WithEnvironment("ServiceClients__PatientBaseUrl", "http://localhost:5193")
+    .WithEnvironment("ServiceClients__AppointmentBaseUrl", "http://localhost:5194")
+    .WithEnvironment("ServiceClients__EncounterBaseUrl", "http://localhost:5195");
+
+var hl7Api = builder.AddProject<Projects.EHR_Hl7Api>("hl7-api")
+    .WithHttpEndpoint(port: 5198)
+    .WaitFor(kafka)
+    .WaitFor(patientService)
+    .WithEnvironment("Kafka__BootstrapServers", "localhost:9092")
+    .WithEnvironment("Jwt__SigningKey", jwtSigningKey)
+    .WithEnvironment("OpenTelemetry__OtlpEndpoint", "http://localhost:4317")
+    .WithEnvironment("ServiceClients__PatientBaseUrl", "http://localhost:5193");
 
 builder.AddProject<Projects.EHR_ApiGateway>("api-gateway")
     .WithHttpEndpoint(port: 5190)
@@ -148,6 +189,9 @@ builder.AddProject<Projects.EHR_ApiGateway>("api-gateway")
     .WaitFor(appointmentService)
     .WaitFor(encounterService)
     .WaitFor(auditService)
+    .WaitFor(analyticsService)
+    .WaitFor(fhirApi)
+    .WaitFor(hl7Api)
     .WaitFor(kafkaUi)
     .WaitFor(pgAdmin)
     .WithEnvironment("Jwt__SigningKey", jwtSigningKey)
@@ -157,7 +201,10 @@ builder.AddProject<Projects.EHR_ApiGateway>("api-gateway")
     .WithEnvironment("ReverseProxy__Clusters__patient__Destinations__default__Address", "http://localhost:5193/")
     .WithEnvironment("ReverseProxy__Clusters__appointment__Destinations__default__Address", "http://localhost:5194/")
     .WithEnvironment("ReverseProxy__Clusters__encounter__Destinations__default__Address", "http://localhost:5195/")
-    .WithEnvironment("ReverseProxy__Clusters__audit__Destinations__default__Address", "http://localhost:5196/");
+    .WithEnvironment("ReverseProxy__Clusters__audit__Destinations__default__Address", "http://localhost:5196/")
+    .WithEnvironment("ReverseProxy__Clusters__analytics__Destinations__default__Address", "http://localhost:5199/")
+    .WithEnvironment("ReverseProxy__Clusters__fhir__Destinations__default__Address", "http://localhost:5197/")
+    .WithEnvironment("ReverseProxy__Clusters__hl7__Destinations__default__Address", "http://localhost:5198/");
 
 builder.Build().Run();
 

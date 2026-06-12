@@ -12,6 +12,15 @@
     <Project Path="src/BuildingBlocks/EHR.SharedKernel/EHR.SharedKernel.csproj" />
   </Folder>
   <Folder Name="/src/Services/" />
+  <Folder Name="/src/Services/AnalyticsService/">
+    <Project Path="src/Services/AnalyticsService/EHR.AnalyticsService/EHR.AnalyticsService.csproj" />
+  </Folder>
+  <Folder Name="/src/Integration/FhirApi/">
+    <Project Path="src/Integration/FhirApi/EHR.FhirApi/EHR.FhirApi.csproj" />
+  </Folder>
+  <Folder Name="/src/Integration/Hl7Api/">
+    <Project Path="src/Integration/Hl7Api/EHR.Hl7Api/EHR.Hl7Api.csproj" />
+  </Folder>
   <Folder Name="/src/Services/AppointmentService/">
     <Project Path="src/Services/AppointmentService/EHR.AppointmentService.Application/EHR.AppointmentService.Application.csproj" />
     <Project Path="src/Services/AppointmentService/EHR.AppointmentService.Domain/EHR.AppointmentService.Domain.csproj" />

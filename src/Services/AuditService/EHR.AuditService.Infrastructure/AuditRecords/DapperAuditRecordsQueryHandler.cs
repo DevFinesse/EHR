@@ -77,5 +77,8 @@ public sealed class DapperAuditRecordsQueryHandler : IQueryHandler<ListAuditReco
 
     private static int Clamp(int value, int min, int max) => Math.Min(Math.Max(value, min), max);
 
-    private sealed record AuditRecordReadRow(Guid Id, string TenantId, string Action, string ResourceType, string ResourceId, string Severity, string CorrelationId, string? UserId);
+    private sealed record AuditRecordReadRow(Guid Id, string TenantId, string Action, string ResourceType, string ResourceId, string Severity, string CorrelationId, string? UserId)
+    {
+        public AuditRecordReadRow() : this(default, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, null) { }
+    }
 }

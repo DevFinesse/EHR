@@ -43,5 +43,8 @@ public sealed class DapperPatientQueryHandler : IQueryHandler<GetPatientByIdQuer
         return Patient.Restore(row.Id, row.TenantId, row.MedicalRecordNumber, row.FullName, row.DateOfBirth, row.Sex, row.PhoneNumber);
     }
 
-    private sealed record PatientReadRow(Guid Id, string TenantId, string MedicalRecordNumber, string FullName, DateOnly DateOfBirth, string Sex, string PhoneNumber);
+    private sealed record PatientReadRow(Guid Id, string TenantId, string MedicalRecordNumber, string FullName, DateOnly DateOfBirth, string Sex, string PhoneNumber)
+    {
+        public PatientReadRow() : this(default, string.Empty, string.Empty, string.Empty, default, string.Empty, string.Empty) { }
+    }
 }

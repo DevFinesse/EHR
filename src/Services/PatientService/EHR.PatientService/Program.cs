@@ -44,6 +44,7 @@ else
         provider.GetRequiredService<ILogger<PatientOutboxPublisherWorker>>()));
 }
 builder.Services.AddScoped<ICommandHandler<RegisterPatientCommand, Patient>, RegisterPatientHandler>();
+builder.Services.AddScoped<ICommandHandler<UpdatePatientDemographicsCommand, Patient?>, UpdatePatientDemographicsHandler>();
 builder.Services.AddSingleton<IIntegrationEventHandler, TenantRegisteredIntegrationEventHandler>();
 
 var app = builder.Build();

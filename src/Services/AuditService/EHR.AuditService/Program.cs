@@ -39,7 +39,10 @@ foreach (var eventType in new[]
     "encounter.started",
     "vitals.recorded",
     "diagnosis.added",
-    "encounter.completed"
+    "encounter.completed",
+    "patient.demographics_updated",
+    "integration.hl7.adt_received",
+    "integration.hl7.adt_patient_mapped"
 })
 {
     builder.Services.AddSingleton<IIntegrationEventHandler>(provider =>

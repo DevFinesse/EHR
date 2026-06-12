@@ -48,5 +48,8 @@ public sealed class DapperEncounterQueryHandler : IQueryHandler<GetEncounterById
         return Encounter.Restore(row.Id, row.TenantId, row.AppointmentId, row.PatientId, row.PractitionerId, row.VisitType, row.Status, vitals, diagnoses);
     }
 
-    private sealed record EncounterReadRow(Guid Id, string TenantId, Guid AppointmentId, Guid PatientId, Guid PractitionerId, string VisitType, string Status, string VitalsJson, string DiagnosesJson);
+    private sealed record EncounterReadRow(Guid Id, string TenantId, Guid AppointmentId, Guid PatientId, Guid PractitionerId, string VisitType, string Status, string VitalsJson, string DiagnosesJson)
+    {
+        public EncounterReadRow() : this(default, string.Empty, default, default, default, string.Empty, string.Empty, string.Empty, string.Empty) { }
+    }
 }

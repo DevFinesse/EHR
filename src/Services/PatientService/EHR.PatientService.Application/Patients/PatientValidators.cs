@@ -13,5 +13,20 @@ public sealed class RegisterPatientCommandValidator : AbstractValidator<Register
             .GreaterThan(new DateOnly(1900, 1, 1));
         RuleFor(command => command.Sex).NotEmpty().MaximumLength(40);
         RuleFor(command => command.PhoneNumber).NotEmpty().MaximumLength(40);
+        RuleFor(command => command.MedicalRecordNumber).MaximumLength(80);
+    }
+}
+
+public sealed class UpdatePatientDemographicsCommandValidator : AbstractValidator<UpdatePatientDemographicsCommand>
+{
+    public UpdatePatientDemographicsCommandValidator()
+    {
+        RuleFor(command => command.Id).NotEmpty();
+        RuleFor(command => command.FullName).NotEmpty().MaximumLength(160);
+        RuleFor(command => command.DateOfBirth)
+            .LessThan(DateOnly.FromDateTime(DateTime.UtcNow))
+            .GreaterThan(new DateOnly(1900, 1, 1));
+        RuleFor(command => command.Sex).NotEmpty().MaximumLength(40);
+        RuleFor(command => command.PhoneNumber).NotEmpty().MaximumLength(40);
     }
 }

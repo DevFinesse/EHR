@@ -21,6 +21,12 @@ public sealed class InMemoryPatientRepository : IPatientRepository
         await _eventBus.PublishAsync(integrationEvent, cancellationToken);
     }
 
+    public async Task UpdateAsync(Patient patient, IntegrationEvent integrationEvent, CancellationToken cancellationToken)
+    {
+        _patients[patient.Id] = patient;
+        await _eventBus.PublishAsync(integrationEvent, cancellationToken);
+    }
+
     public Task<Patient?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         _patients.TryGetValue(id, out var patient);

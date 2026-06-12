@@ -77,5 +77,8 @@ public sealed class DapperListAppointmentsQueryHandler : IQueryHandler<ListAppoi
 
     private static int Clamp(int value, int min, int max) => Math.Min(Math.Max(value, min), max);
 
-    private sealed record AppointmentReadRow(Guid Id, string TenantId, Guid PatientId, Guid PractitionerId, DateTimeOffset ScheduledFor, string Reason, string Status);
+    private sealed record AppointmentReadRow(Guid Id, string TenantId, Guid PatientId, Guid PractitionerId, DateTimeOffset ScheduledFor, string Reason, string Status)
+    {
+        public AppointmentReadRow() : this(default, string.Empty, default, default, default, string.Empty, string.Empty) { }
+    }
 }

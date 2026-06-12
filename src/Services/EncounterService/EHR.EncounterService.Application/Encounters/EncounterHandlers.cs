@@ -25,7 +25,7 @@ public sealed class StartEncounterHandler : ICommandHandler<StartEncounterComman
         _tenantAuthorization.EnsureCanAccessTenant(tenantId);
 
         var encounter = Encounter.Start(tenantId, command.AppointmentId, command.PatientId, command.PractitionerId, command.VisitType);
-        var integrationEvent = new EncounterStartedEvent(Guid.NewGuid(), encounter.TenantId, encounter.Id, encounter.PatientId, _currentUser.CorrelationId);
+        var integrationEvent = new EncounterStartedEvent(Guid.NewGuid(), encounter.TenantId, encounter.Id, encounter.PatientId, _currentUser.CorrelationId, encounter.AppointmentId, encounter.PractitionerId, encounter.VisitType);
         await _repository.AddAsync(encounter, integrationEvent, cancellationToken);
         return encounter;
     }
@@ -55,7 +55,7 @@ public sealed class RecordVitalsHandler : ICommandHandler<RecordVitalsCommand, R
         _tenantAuthorization.EnsureCanAccessTenant(encounter.TenantId);
 
         encounter.RecordVitals(new VitalSigns(command.TemperatureCelsius, command.SystolicBloodPressure, command.DiastolicBloodPressure, command.PulseRate, command.OxygenSaturation));
-        var integrationEvent = new VitalsRecordedEvent(Guid.NewGuid(), encounter.TenantId, encounter.Id, _currentUser.CorrelationId);
+        var integrationEvent = new VitalsRecordedEvent(Guid.NewGuid(), encounter.TenantId, encounter.Id, _currentUser.CorrelationId, command.TemperatureCelsius, command.SystolicBloodPressure, command.DiastolicBloodPressure, command.PulseRate, command.OxygenSaturation);
         await _repository.SaveAsync(encounter, integrationEvent, cancellationToken);
         return Result<Encounter>.Success(encounter);
     }
@@ -86,7 +86,7 @@ public sealed class AddDiagnosisHandler : ICommandHandler<AddDiagnosisCommand, R
 
         var code = command.Code.Trim().ToUpperInvariant();
         encounter.AddDiagnosis(new Diagnosis(code, command.Description.Trim(), command.Certainty.Trim()));
-        var integrationEvent = new DiagnosisAddedEvent(Guid.NewGuid(), encounter.TenantId, encounter.Id, code, _currentUser.CorrelationId);
+        var integrationEvent = new DiagnosisAddedEvent(Guid.NewGuid(), encounter.TenantId, encounter.Id, code, _currentUser.CorrelationId, command.Description.Trim(), command.Certainty.Trim());
         await _repository.SaveAsync(encounter, integrationEvent, cancellationToken);
         return Result<Encounter>.Success(encounter);
     }

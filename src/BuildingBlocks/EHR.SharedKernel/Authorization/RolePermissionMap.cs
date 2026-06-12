@@ -17,12 +17,15 @@ public static class RolePermissionMap
                 PlatformPermissions.StaffMetadataManage,
                 PlatformPermissions.PatientsRead,
                 PlatformPermissions.PatientsCreate,
+                PlatformPermissions.PatientsUpdate,
                 PlatformPermissions.AppointmentsRead,
                 PlatformPermissions.AppointmentsBook,
                 PlatformPermissions.AppointmentsCheckIn,
                 PlatformPermissions.EncountersRead,
                 PlatformPermissions.EncountersWrite,
-                PlatformPermissions.AuditRead
+                PlatformPermissions.AuditRead,
+                PlatformPermissions.AnalyticsRead,
+                PlatformPermissions.AnalyticsManage
             ],
             [PlatformRoles.Doctor] =
             [
@@ -35,6 +38,7 @@ public static class RolePermissionMap
             [
                 PlatformPermissions.PatientsRead,
                 PlatformPermissions.PatientsCreate,
+                PlatformPermissions.PatientsUpdate,
                 PlatformPermissions.AppointmentsRead,
                 PlatformPermissions.AppointmentsCheckIn,
                 PlatformPermissions.EncountersRead,
@@ -59,6 +63,7 @@ public static class RolePermissionMap
             [
                 PlatformPermissions.PatientsRead,
                 PlatformPermissions.PatientsCreate,
+                PlatformPermissions.PatientsUpdate,
                 PlatformPermissions.AppointmentsRead
             ],
             [PlatformRoles.BillingOfficer] =
@@ -70,13 +75,15 @@ public static class RolePermissionMap
             [
                 PlatformPermissions.PatientsRead,
                 PlatformPermissions.PatientsCreate,
+                PlatformPermissions.PatientsUpdate,
                 PlatformPermissions.AppointmentsRead,
                 PlatformPermissions.AppointmentsBook
             ],
             [PlatformRoles.Auditor] =
             [
                 PlatformPermissions.TenantRead,
-                PlatformPermissions.AuditRead
+                PlatformPermissions.AuditRead,
+                PlatformPermissions.AnalyticsRead
             ]
         };
 

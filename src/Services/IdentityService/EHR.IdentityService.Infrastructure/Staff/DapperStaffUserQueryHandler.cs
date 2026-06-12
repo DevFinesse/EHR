@@ -48,5 +48,8 @@ public sealed class DapperStaffUserQueryHandler : IQueryHandler<GetStaffUserById
         return StaffUser.Restore(row.Id, row.TenantId, row.FullName, row.Email, row.Role, row.Department, row.PasswordHash, row.MfaEnabled, row.MfaSecret, row.RecoveryCodesHash, row.FailedLoginAttempts, row.LockedUntil);
     }
 
-    private sealed record StaffUserReadRow(Guid Id, string TenantId, string FullName, string Email, string Role, string Department, string? PasswordHash, bool MfaEnabled, string? MfaSecret, string? RecoveryCodesHash, int FailedLoginAttempts, DateTimeOffset? LockedUntil);
+    private sealed record StaffUserReadRow(Guid Id, string TenantId, string FullName, string Email, string Role, string Department, string? PasswordHash, bool MfaEnabled, string? MfaSecret, string? RecoveryCodesHash, int FailedLoginAttempts, DateTimeOffset? LockedUntil)
+    {
+        public StaffUserReadRow() : this(default, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, null, false, null, null, 0, null) { }
+    }
 }

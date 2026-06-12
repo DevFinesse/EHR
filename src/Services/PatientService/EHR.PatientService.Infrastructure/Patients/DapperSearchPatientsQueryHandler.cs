@@ -77,5 +77,8 @@ public sealed class DapperSearchPatientsQueryHandler : IQueryHandler<SearchPatie
 
     private static int Clamp(int value, int min, int max) => Math.Min(Math.Max(value, min), max);
 
-    private sealed record PatientReadRow(Guid Id, string TenantId, string MedicalRecordNumber, string FullName, DateOnly DateOfBirth, string Sex, string PhoneNumber);
+    private sealed record PatientReadRow(Guid Id, string TenantId, string MedicalRecordNumber, string FullName, DateOnly DateOfBirth, string Sex, string PhoneNumber)
+    {
+        public PatientReadRow() : this(default, string.Empty, string.Empty, string.Empty, default, string.Empty, string.Empty) { }
+    }
 }

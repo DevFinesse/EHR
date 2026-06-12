@@ -83,5 +83,8 @@ public sealed class DapperListEncountersQueryHandler : IQueryHandler<ListEncount
 
     private static int Clamp(int value, int min, int max) => Math.Min(Math.Max(value, min), max);
 
-    private sealed record EncounterReadRow(Guid Id, string TenantId, Guid AppointmentId, Guid PatientId, Guid PractitionerId, string VisitType, string Status, string VitalsJson, string DiagnosesJson);
+    private sealed record EncounterReadRow(Guid Id, string TenantId, Guid AppointmentId, Guid PatientId, Guid PractitionerId, string VisitType, string Status, string VitalsJson, string DiagnosesJson)
+    {
+        public EncounterReadRow() : this(default, string.Empty, default, default, default, string.Empty, string.Empty, string.Empty, string.Empty) { }
+    }
 }

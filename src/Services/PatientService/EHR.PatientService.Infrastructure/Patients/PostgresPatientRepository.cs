@@ -54,4 +54,23 @@ public sealed class PostgresPatientRepository : IPatientRepository
             ? null
             : Patient.Restore(row.Id, row.TenantId, row.MedicalRecordNumber, row.FullName, row.DateOfBirth, row.Sex, row.PhoneNumber);
     }
+
+    public async Task UpdateAsync(Patient patient, IntegrationEvent integrationEvent, CancellationToken cancellationToken)
+    {
+        await using var db = new PatientDbContext(_options, _currentUser);
+        var row = await db.Patients.SingleOrDefaultAsync(existing => existing.Id == patient.Id, cancellationToken);
+        if (row is null)
+        {
+            return;
+        }
+
+        row.FullName = patient.FullName;
+        row.DateOfBirth = patient.DateOfBirth;
+        row.Sex = patient.Sex;
+        row.PhoneNumber = patient.PhoneNumber;
+        db.OutboxMessages.Add(OutboxMessageRow.FromIntegrationEvent(integrationEvent));
+
+        await db.SaveChangesAsync(cancellationToken);
+        _outboxSignal.Signal();
+    }
 }

@@ -3,4 +3,6 @@ using EHR.PatientService.Domain.Patients;
 
 namespace EHR.PatientService.Application.Patients;
 
-public sealed record RegisterPatientCommand(string TenantId, string FullName, DateOnly DateOfBirth, string Sex, string PhoneNumber) : ICommand<Patient>;
+public sealed record RegisterPatientCommand(string TenantId, string FullName, DateOnly DateOfBirth, string Sex, string PhoneNumber, string? MedicalRecordNumber = null) : ICommand<Patient>;
+
+public sealed record UpdatePatientDemographicsCommand(Guid Id, string FullName, DateOnly DateOfBirth, string Sex, string PhoneNumber) : ICommand<Patient?>;

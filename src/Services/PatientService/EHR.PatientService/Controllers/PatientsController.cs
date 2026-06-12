@@ -33,6 +33,14 @@ public sealed class PatientsController : ControllerBase
         return patient is null ? NotFound() : Ok(patient);
     }
 
+    [HttpPut("{id:guid}/demographics")]
+    [Authorize(Policy = PlatformPermissions.PatientsUpdate)]
+    public async Task<IActionResult> UpdateDemographics(Guid id, UpdatePatientDemographicsRequest request, CancellationToken cancellationToken)
+    {
+        var patient = await _cqrs.SendAsync(new UpdatePatientDemographicsCommand(id, request.FullName, request.DateOfBirth, request.Sex, request.PhoneNumber), cancellationToken);
+        return patient is null ? NotFound() : Ok(patient);
+    }
+
     [HttpGet]
     [Authorize(Policy = PlatformPermissions.PatientsRead)]
     public async Task<IActionResult> Search(
@@ -47,3 +55,5 @@ public sealed class PatientsController : ControllerBase
         return Ok(patients);
     }
 }
+
+public sealed record UpdatePatientDemographicsRequest(string FullName, DateOnly DateOfBirth, string Sex, string PhoneNumber);

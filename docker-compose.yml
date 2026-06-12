@@ -71,6 +71,8 @@ services:
         condition: service_healthy
       audit-db:
         condition: service_healthy
+      analytics-db:
+        condition: service_healthy
 
   mailpit:
     image: axllent/mailpit:v1.21
@@ -162,6 +164,20 @@ services:
       timeout: 5s
       retries: 10
 
+  analytics-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ehr_analytics
+      POSTGRES_USER: ehr
+      POSTGRES_PASSWORD: ehr_dev_password
+    ports:
+      - "5439:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ehr -d ehr_analytics"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   api-gateway:
     build:
       context: .
@@ -176,6 +192,9 @@ services:
       ReverseProxy__Clusters__appointment__Destinations__default__Address: http://appointment-service:8080/
       ReverseProxy__Clusters__encounter__Destinations__default__Address: http://encounter-service:8080/
       ReverseProxy__Clusters__audit__Destinations__default__Address: http://audit-service:8080/
+      ReverseProxy__Clusters__analytics__Destinations__default__Address: http://analytics-service:8080/
+      ReverseProxy__Clusters__fhir__Destinations__default__Address: http://fhir-api:8080/
+      ReverseProxy__Clusters__hl7__Destinations__default__Address: http://hl7-api:8080/
     ports:
       - "5190:8080"
     healthcheck:
@@ -195,6 +214,12 @@ services:
       encounter-service:
         condition: service_healthy
       audit-service:
+        condition: service_healthy
+      analytics-service:
+        condition: service_healthy
+      fhir-api:
+        condition: service_healthy
+      hl7-api:
         condition: service_healthy
 
   tenant-service:
@@ -363,6 +388,9 @@ services:
       Kafka__ConsumerTopics__6: vitals.recorded
       Kafka__ConsumerTopics__7: diagnosis.added
       Kafka__ConsumerTopics__8: encounter.completed
+      Kafka__ConsumerTopics__9: integration.hl7.adt_received
+      Kafka__ConsumerTopics__10: integration.hl7.adt_patient_mapped
+      Kafka__ConsumerTopics__11: patient.demographics_updated
     ports:
       - "5196:8080"
     healthcheck:
@@ -374,6 +402,93 @@ services:
       kafka:
         condition: service_healthy
       audit-db:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+
+  analytics-service:
+    build:
+      context: .
+      dockerfile: src/Services/AnalyticsService/EHR.AnalyticsService/Dockerfile
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      Kafka__BootstrapServers: kafka:9092
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:-development-signing-key-change-before-production-32chars}
+      OpenTelemetry__OtlpEndpoint: http://jaeger:4317
+      ConnectionStrings__AnalyticsDb: Host=analytics-db;Port=5432;Database=ehr_analytics;Username=ehr;Password=ehr_dev_password
+      Kafka__ConsumerGroupId: analytics-service
+      Kafka__ConsumerTopics__0: patient.created
+      Kafka__ConsumerTopics__1: patient.demographics_updated
+      Kafka__ConsumerTopics__2: encounter.started
+      Kafka__ConsumerTopics__3: vitals.recorded
+      Kafka__ConsumerTopics__4: diagnosis.added
+    ports:
+      - "5199:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    depends_on:
+      kafka:
+        condition: service_healthy
+      analytics-db:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+
+  fhir-api:
+    build:
+      context: .
+      dockerfile: src/Integration/FhirApi/EHR.FhirApi/Dockerfile
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      Kafka__BootstrapServers: kafka:9092
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:-development-signing-key-change-before-production-32chars}
+      OpenTelemetry__OtlpEndpoint: http://jaeger:4317
+      ServiceClients__PatientBaseUrl: http://patient-service:8080
+      ServiceClients__IdentityBaseUrl: http://identity-service:8080
+      ServiceClients__PatientBaseUrl: http://patient-service:8080
+      ServiceClients__AppointmentBaseUrl: http://appointment-service:8080
+      ServiceClients__EncounterBaseUrl: http://encounter-service:8080
+    ports:
+      - "5197:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    depends_on:
+      identity-service:
+        condition: service_healthy
+      patient-service:
+        condition: service_healthy
+      appointment-service:
+        condition: service_healthy
+      encounter-service:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+
+  hl7-api:
+    build:
+      context: .
+      dockerfile: src/Integration/Hl7Api/EHR.Hl7Api/Dockerfile
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:-development-signing-key-change-before-production-32chars}
+      OpenTelemetry__OtlpEndpoint: http://jaeger:4317
+    ports:
+      - "5198:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    depends_on:
+      kafka:
+        condition: service_healthy
+      patient-service:
         condition: service_healthy
       jaeger:
         condition: service_started

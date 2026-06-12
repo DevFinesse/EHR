@@ -43,5 +43,8 @@ public sealed class DapperAppointmentQueryHandler : IQueryHandler<GetAppointment
         return Appointment.Restore(row.Id, row.TenantId, row.PatientId, row.PractitionerId, row.ScheduledFor, row.Reason, row.Status);
     }
 
-    private sealed record AppointmentReadRow(Guid Id, string TenantId, Guid PatientId, Guid PractitionerId, DateTimeOffset ScheduledFor, string Reason, string Status);
+    private sealed record AppointmentReadRow(Guid Id, string TenantId, Guid PatientId, Guid PractitionerId, DateTimeOffset ScheduledFor, string Reason, string Status)
+    {
+        public AppointmentReadRow() : this(default, string.Empty, default, default, default, string.Empty, string.Empty) { }
+    }
 }
